@@ -1,5 +1,6 @@
 # Gradle files
 .gradle/
+.gradle-local/
 build/
 */build/
 
@@ -7,6 +8,9 @@ build/
 .idea/
 *.iml
 /.settings/
+
+# Kotlin
+.kotlin/
 
 # Local configuration
 local.properties
