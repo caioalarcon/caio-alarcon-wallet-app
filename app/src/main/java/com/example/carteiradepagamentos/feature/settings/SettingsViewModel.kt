@@ -23,7 +23,10 @@ class SettingsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoggingOut = true, errorMessage = null)
 
             runCatching { authRepository.logout() }
-                .onSuccess { onLoggedOut() }
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(isLoggingOut = false)
+                    onLoggedOut()
+                }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(
                         isLoggingOut = false,

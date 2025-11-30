@@ -25,6 +25,7 @@ class SharedPrefsAuthRepository @Inject constructor(
     }
 
     override suspend fun logout() {
+        delay(500)
         authStorage.clearSession()
     }
 
