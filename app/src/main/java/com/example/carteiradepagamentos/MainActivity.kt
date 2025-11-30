@@ -12,10 +12,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.example.carteiradepagamentos.ui.home.HomeScreen
-import com.example.carteiradepagamentos.ui.login.LoginScreen
+import com.example.carteiradepagamentos.feature.home.HomeScreen
+import com.example.carteiradepagamentos.feature.login.LoginScreen
 import com.example.carteiradepagamentos.ui.theme.CarteiraDePagamentosTheme
-import com.example.carteiradepagamentos.ui.transfer.TransferScreen
+import com.example.carteiradepagamentos.feature.transfer.TransferScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 sealed class Screen {
