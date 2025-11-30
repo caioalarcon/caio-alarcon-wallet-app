@@ -3,17 +3,17 @@ package com.example.carteiradepagamentos.di
 import com.example.carteiradepagamentos.data.local.SharedPrefsAuthRepository
 import com.example.carteiradepagamentos.data.local.SharedPrefsAuthStorage
 import com.example.carteiradepagamentos.data.local.SharedPrefsUserPreferencesRepository
-import com.example.carteiradepagamentos.data.memory.InMemoryBalanceStorage
 import com.example.carteiradepagamentos.data.memory.InMemoryWalletRepository
 import com.example.carteiradepagamentos.data.notification.AndroidNotifier
+import com.example.carteiradepagamentos.data.remote.FakeAuthRemoteDataSource
 import com.example.carteiradepagamentos.data.remote.NetworkAuthorizeService
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.UserPreferencesRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
+import com.example.carteiradepagamentos.domain.service.AuthRemoteDataSource
 import com.example.carteiradepagamentos.domain.service.AuthorizeService
 import com.example.carteiradepagamentos.domain.service.Notifier
 import com.example.carteiradepagamentos.domain.storage.AuthStorage
-import com.example.carteiradepagamentos.domain.storage.BalanceStorage
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -51,15 +51,15 @@ abstract class AppModule {
 
     @Binds
     @Singleton
-    abstract fun bindAuthorizeService(
-        impl: NetworkAuthorizeService
-    ): AuthorizeService
+    abstract fun bindAuthRemoteDataSource(
+        impl: FakeAuthRemoteDataSource
+    ): AuthRemoteDataSource
 
     @Binds
     @Singleton
-    abstract fun bindBalanceStorage(
-        impl: InMemoryBalanceStorage
-    ): BalanceStorage
+    abstract fun bindAuthorizeService(
+        impl: NetworkAuthorizeService
+    ): AuthorizeService
 }
 
 @Module

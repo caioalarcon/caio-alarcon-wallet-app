@@ -1,7 +1,9 @@
 package com.example.carteiradepagamentos.data.memory
 
+import com.example.carteiradepagamentos.domain.model.Session
+import com.example.carteiradepagamentos.domain.model.User
+import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.service.AuthorizeService
-import com.example.carteiradepagamentos.domain.storage.BalanceStorage
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -13,26 +15,38 @@ class InMemoryWalletRepositoryTest {
         override suspend fun authorizeTransfer(amountInCents: Long) = Result.success(allowed)
     }
 
-    class FakeBalanceStorage(initial: Long) : BalanceStorage {
-        var value = initial
-        override fun loadBalance() = value
-        override fun saveBalance(newBalance: Long) { value = newBalance }
+    class FakeAuthRepository(
+        private var session: Session?
+    ) : AuthRepository {
+        override suspend fun login(email: String, password: String) = Result.failure<Session>(UnsupportedOperationException())
+        override suspend fun logout() { session = null }
+        override suspend fun getCurrentSession(): Session? = session
+    }
+
+    private fun buildRepository(
+        authorizeService: AuthorizeService = FakeAuthorizeService(true),
+        session: Session? = Session(
+            token = "token",
+            user = User(id = "1", name = "Usuário Exemplo", email = "user@example.com")
+        )
+    ): InMemoryWalletRepository {
+        val authRepository = FakeAuthRepository(session)
+        return InMemoryWalletRepository(authorizeService, authRepository)
     }
 
     @Test
     fun `transfer with valid contact amount and authorization succeeds and decreases balance`() = runTest {
-        val balanceStorage = FakeBalanceStorage(initial = 10_000)
-        val repository = InMemoryWalletRepository(FakeAuthorizeService(true), balanceStorage)
+        val repository = buildRepository()
 
-        val result = repository.transfer("c1", 2_500)
+        val result = repository.transfer("acc2", 2_500)
 
         assertTrue(result.isSuccess)
-        assertEquals(7_500, balanceStorage.loadBalance())
+        assertEquals(97_500, result.getOrNull()?.balanceInCents)
     }
 
     @Test
     fun `transfer fails when contact does not exist`() = runTest {
-        val repository = InMemoryWalletRepository(FakeAuthorizeService(true), FakeBalanceStorage(1_000))
+        val repository = buildRepository()
 
         val result = repository.transfer("unknown", 100)
 
@@ -42,9 +56,9 @@ class InMemoryWalletRepositoryTest {
 
     @Test
     fun `transfer fails when amount is not positive`() = runTest {
-        val repository = InMemoryWalletRepository(FakeAuthorizeService(true), FakeBalanceStorage(1_000))
+        val repository = buildRepository()
 
-        val result = repository.transfer("c1", 0)
+        val result = repository.transfer("acc2", 0)
 
         assertTrue(result.isFailure)
         assertEquals("Valor inválido", result.exceptionOrNull()?.message)
@@ -52,9 +66,9 @@ class InMemoryWalletRepositoryTest {
 
     @Test
     fun `transfer fails when authorization denies`() = runTest {
-        val repository = InMemoryWalletRepository(FakeAuthorizeService(false), FakeBalanceStorage(1_000))
+        val repository = buildRepository(FakeAuthorizeService(false))
 
-        val result = repository.transfer("c1", 100)
+        val result = repository.transfer("acc2", 100)
 
         assertTrue(result.isFailure)
         assertEquals("operation not allowed", result.exceptionOrNull()?.message)
@@ -62,11 +76,31 @@ class InMemoryWalletRepositoryTest {
 
     @Test
     fun `transfer fails when amount exceeds balance`() = runTest {
-        val repository = InMemoryWalletRepository(FakeAuthorizeService(true), FakeBalanceStorage(500))
+        val repository = buildRepository()
 
-        val result = repository.transfer("c1", 1_000)
+        val result = repository.transfer("acc2", 150_000)
 
         assertTrue(result.isFailure)
         assertEquals("Saldo insuficiente", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `getContacts returns all accounts except the payer`() = runTest {
+        val repository = buildRepository()
+
+        val contacts = repository.getContacts()
+
+        assertEquals(listOf("acc2", "acc3", "acc4"), contacts.map { it.id })
+    }
+
+    @Test
+    fun `getAccountSummary uses current user account`() = runTest {
+        val repository = buildRepository(
+            session = Session(token = "token", user = User(id = "3", name = "Bob", email = "bob@example.com"))
+        )
+
+        val summary = repository.getAccountSummary()
+
+        assertEquals(75_000, summary.balanceInCents)
     }
 }
