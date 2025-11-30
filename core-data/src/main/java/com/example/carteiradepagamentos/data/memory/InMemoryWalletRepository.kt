@@ -94,6 +94,10 @@ class InMemoryWalletRepository @Inject constructor(
         val payeeAccount = accounts.firstOrNull { it.id == toContactId }
             ?: return Result.failure(IllegalArgumentException("Contato inválido"))
 
+        if (payeeAccount.ownerUserId == payerAccount.ownerUserId) {
+            return Result.failure(IllegalStateException("Payer e payee não podem ser iguais"))
+        }
+
         val authorization = authorizeService.authorizeTransfer(amountInCents)
         val isAllowed = authorization.getOrElse { return Result.failure(it) }
         if (!isAllowed) {
