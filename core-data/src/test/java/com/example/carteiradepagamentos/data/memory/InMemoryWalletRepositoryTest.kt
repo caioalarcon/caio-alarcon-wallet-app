@@ -75,6 +75,16 @@ class InMemoryWalletRepositoryTest {
     }
 
     @Test
+    fun `transfer fails when payer and payee are the same`() = runTest {
+        val repository = buildRepository()
+
+        val result = repository.transfer("acc1", 1_000)
+
+        assertTrue(result.isFailure)
+        assertEquals("Payer e payee não podem ser iguais", result.exceptionOrNull()?.message)
+    }
+
+    @Test
     fun `transfer fails when amount exceeds balance`() = runTest {
         val repository = buildRepository()
 

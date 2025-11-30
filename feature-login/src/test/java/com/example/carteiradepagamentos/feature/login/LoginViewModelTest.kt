@@ -4,6 +4,8 @@ import com.example.carteiradepagamentos.MainDispatcherRule
 import com.example.carteiradepagamentos.domain.model.Session
 import com.example.carteiradepagamentos.domain.model.User
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
+import com.example.carteiradepagamentos.domain.repository.UserPreferencesRepository
+import com.example.carteiradepagamentos.domain.model.ThemeMode
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -49,10 +51,27 @@ class LoginViewModelTest {
         override suspend fun getCurrentSession(): Session? = null
     }
 
+    class FakeUserPreferencesRepository : UserPreferencesRepository {
+        var lastSavedEmail: String? = null
+
+        override suspend fun getThemeForUser(userId: String?) = ThemeMode.SYSTEM
+
+        override suspend fun setThemeForUser(userId: String?, mode: ThemeMode) {
+            // não usado neste teste
+        }
+
+        override suspend fun getLastLoggedEmail(): String? = null
+
+        override suspend fun setLastLoggedEmail(email: String?) {
+            lastSavedEmail = email
+        }
+    }
+
     @Test
     fun `when email or password is blank shows validation error and does not call repository`() = runTest {
         val fakeRepo = FakeAuthRepository()
-        val viewModel = LoginViewModel(fakeRepo)
+        val fakeUserPrefs = FakeUserPreferencesRepository()
+        val viewModel = LoginViewModel(fakeRepo, fakeUserPrefs)
 
         // estado inicial: ambos vazios
         viewModel.onLoginClicked()
@@ -65,7 +84,8 @@ class LoginViewModelTest {
     @Test
     fun `successful login updates state with success and stops loading`() = runTest {
         val fakeRepo = FakeAuthRepository(shouldSucceed = true)
-        val viewModel = LoginViewModel(fakeRepo)
+        val fakeUserPrefs = FakeUserPreferencesRepository()
+        val viewModel = LoginViewModel(fakeRepo, fakeUserPrefs)
 
         viewModel.onEmailChanged("user@example.com")
         viewModel.onPasswordChanged("123456")
@@ -79,12 +99,14 @@ class LoginViewModelTest {
         assertEquals(null, state.errorMessage)
         assertEquals("user@example.com", fakeRepo.lastEmail)
         assertEquals("123456", fakeRepo.lastPassword)
+        assertEquals("user@example.com", fakeUserPrefs.lastSavedEmail)
     }
 
     @Test
     fun `failed login shows error and does not mark success`() = runTest {
         val fakeRepo = FakeAuthRepository(shouldSucceed = false)
-        val viewModel = LoginViewModel(fakeRepo)
+        val fakeUserPrefs = FakeUserPreferencesRepository()
+        val viewModel = LoginViewModel(fakeRepo, fakeUserPrefs)
 
         viewModel.onEmailChanged("wrong@example.com")
         viewModel.onPasswordChanged("bad")
