@@ -113,4 +113,8 @@ class TransferViewModel @Inject constructor(
         val cents = balanceInCents % 100
         return "R$ %d,%02d".format(reais, cents)
     }
+
+    fun clearSuccessMessage() {
+        _uiState.value = _uiState.value.copy(successMessage = null)
+    }
 }

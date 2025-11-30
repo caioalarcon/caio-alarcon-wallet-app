@@ -45,12 +45,15 @@ fun TransferScreen(
         }
     }
 
+    // Só navega, sem trocar layout antes
     LaunchedEffect(uiState.successMessage) {
         if (uiState.successMessage != null) {
+            viewModel.clearSuccessMessage()
             onBackToHome()
         }
     }
 
+    // Mantém sempre o mesmo layout na tela
     TransferContent(
         uiState = uiState,
         onAmountChange = viewModel::onAmountChanged,

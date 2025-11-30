@@ -19,11 +19,6 @@ class HomeViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
-
-    init {
-        load()
-    }
-
     fun load() {
         viewModelScope.launch {
             val session = authRepository.getCurrentSession()
@@ -35,7 +30,12 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            val hasExistingData = _uiState.value.contacts.isNotEmpty()
+
+            _uiState.value = _uiState.value.copy(
+                isLoading = !hasExistingData,
+                errorMessage = null
+            )
 
             val summary = walletRepository.getAccountSummary()
             val contacts = walletRepository.getContacts()
