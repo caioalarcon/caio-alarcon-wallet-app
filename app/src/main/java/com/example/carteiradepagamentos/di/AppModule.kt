@@ -2,11 +2,13 @@ package com.example.carteiradepagamentos.di
 
 import com.example.carteiradepagamentos.data.local.SharedPrefsAuthRepository
 import com.example.carteiradepagamentos.data.local.SharedPrefsAuthStorage
+import com.example.carteiradepagamentos.data.local.SharedPrefsUserPreferencesRepository
 import com.example.carteiradepagamentos.data.memory.InMemoryBalanceStorage
 import com.example.carteiradepagamentos.data.memory.InMemoryWalletRepository
 import com.example.carteiradepagamentos.data.notification.AndroidNotifier
 import com.example.carteiradepagamentos.data.remote.NetworkAuthorizeService
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
+import com.example.carteiradepagamentos.domain.repository.UserPreferencesRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
 import com.example.carteiradepagamentos.domain.service.AuthorizeService
 import com.example.carteiradepagamentos.domain.service.Notifier
@@ -14,6 +16,7 @@ import com.example.carteiradepagamentos.domain.storage.AuthStorage
 import com.example.carteiradepagamentos.domain.storage.BalanceStorage
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
@@ -57,4 +60,15 @@ abstract class AppModule {
     abstract fun bindBalanceStorage(
         impl: InMemoryBalanceStorage
     ): BalanceStorage
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object AppProvidesModule {
+
+    @Provides
+    @Singleton
+    fun provideUserPreferencesRepository(
+        impl: SharedPrefsUserPreferencesRepository
+    ): UserPreferencesRepository = impl
 }
