@@ -1,4 +1,4 @@
-package com.example.carteiradepagamentos.ui.login
+package com.example.carteiradepagamentos.feature.login
 
 data class LoginUiState(
     val email: String = "",

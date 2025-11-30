@@ -1,4 +1,4 @@
-package com.example.carteiradepagamentos.ui.home
+package com.example.carteiradepagamentos.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

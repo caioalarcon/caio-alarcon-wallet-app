@@ -1,4 +1,4 @@
-package com.example.carteiradepagamentos.ui.login
+package com.example.carteiradepagamentos.feature.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

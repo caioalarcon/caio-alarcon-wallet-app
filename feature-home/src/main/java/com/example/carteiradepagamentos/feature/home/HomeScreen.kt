@@ -1,4 +1,4 @@
-package com.example.carteiradepagamentos.ui.home
+package com.example.carteiradepagamentos.feature.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column

@@ -1,4 +1,4 @@
-package com.example.carteiradepagamentos.ui.transfer
+package com.example.carteiradepagamentos.feature.transfer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

@@ -1,4 +1,4 @@
-package com.example.carteiradepagamentos.ui.transfer
+package com.example.carteiradepagamentos.feature.transfer
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column

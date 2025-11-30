@@ -1,4 +1,4 @@
-package com.example.carteiradepagamentos.ui.home
+package com.example.carteiradepagamentos.feature.home
 
 import com.example.carteiradepagamentos.domain.model.Contact
 

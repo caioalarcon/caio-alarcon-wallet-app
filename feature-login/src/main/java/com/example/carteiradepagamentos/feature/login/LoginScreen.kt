@@ -1,4 +1,4 @@
-package com.example.carteiradepagamentos.ui.login
+package com.example.carteiradepagamentos.feature.login
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
