@@ -2,9 +2,9 @@ package com.example.carteiradepagamentos.data.memory
 
 import com.example.carteiradepagamentos.domain.model.AccountSummary
 import com.example.carteiradepagamentos.domain.model.Contact
+import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
 import com.example.carteiradepagamentos.domain.service.AuthorizeService
-import com.example.carteiradepagamentos.domain.storage.BalanceStorage
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,23 +12,72 @@ import javax.inject.Singleton
 @Singleton
 class InMemoryWalletRepository @Inject constructor(
     private val authorizeService: AuthorizeService,
-    private val balanceStorage: BalanceStorage
+    private val authRepository: AuthRepository
 ) : WalletRepository {
 
-    private val contacts = listOf(
-        Contact(id = "c1", name = "Alice", accountNumber = "0001-1"),
-        Contact(id = "c2", name = "Bob", accountNumber = "0001-2"),
-        Contact(id = "c3", name = "Carol", accountNumber = "0001-3"),
+    private data class AccountState(
+        val id: String,
+        val ownerUserId: String,
+        val ownerName: String,
+        val accountNumber: String,
+        var balanceInCents: Long
     )
+
+    private val accounts = mutableListOf(
+        AccountState(
+            id = "acc1",
+            ownerUserId = "1",
+            ownerName = "Usuário Exemplo",
+            accountNumber = "0001-1",
+            balanceInCents = 100_000
+        ),
+        AccountState(
+            id = "acc2",
+            ownerUserId = "2",
+            ownerName = "Alice",
+            accountNumber = "0001-2",
+            balanceInCents = 50_000
+        ),
+        AccountState(
+            id = "acc3",
+            ownerUserId = "3",
+            ownerName = "Bob",
+            accountNumber = "0001-3",
+            balanceInCents = 75_000
+        ),
+        AccountState(
+            id = "acc4",
+            ownerUserId = "4",
+            ownerName = "Carol",
+            accountNumber = "0001-4",
+            balanceInCents = 200_000
+        ),
+    )
+
+    private suspend fun currentUserAccount(): AccountState {
+        val session = authRepository.getCurrentSession()
+            ?: error("Sessão inexistente ao consultar carteira")
+        return accounts.first { it.ownerUserId == session.user.id }
+    }
 
     override suspend fun getAccountSummary(): AccountSummary {
         delay(300)
-        return AccountSummary(balanceStorage.loadBalance())
+        val account = currentUserAccount()
+        return AccountSummary(account.balanceInCents)
     }
 
     override suspend fun getContacts(): List<Contact> {
         delay(300)
-        return contacts
+        val currentUserAccount = currentUserAccount()
+        return accounts
+            .filter { it.ownerUserId != currentUserAccount.ownerUserId }
+            .map { account ->
+                Contact(
+                    id = account.id,
+                    name = account.ownerName,
+                    accountNumber = account.accountNumber
+                )
+            }
     }
 
     override suspend fun transfer(
@@ -37,13 +86,13 @@ class InMemoryWalletRepository @Inject constructor(
     ): Result<AccountSummary> {
         delay(500)
 
-        if (contacts.none { it.id == toContactId }) {
-            return Result.failure(IllegalArgumentException("Contato inválido"))
-        }
-
         if (amountInCents <= 0) {
             return Result.failure(IllegalArgumentException("Valor inválido"))
         }
+
+        val payerAccount = currentUserAccount()
+        val payeeAccount = accounts.firstOrNull { it.id == toContactId }
+            ?: return Result.failure(IllegalArgumentException("Contato inválido"))
 
         val authorization = authorizeService.authorizeTransfer(amountInCents)
         val isAllowed = authorization.getOrElse { return Result.failure(it) }
@@ -51,13 +100,13 @@ class InMemoryWalletRepository @Inject constructor(
             return Result.failure(IllegalStateException("operation not allowed"))
         }
 
-        val currentBalance = balanceStorage.loadBalance()
-        if (amountInCents > currentBalance) {
+        if (amountInCents > payerAccount.balanceInCents) {
             return Result.failure(IllegalStateException("Saldo insuficiente"))
         }
 
-        val newBalance = currentBalance - amountInCents
-        balanceStorage.saveBalance(newBalance)
-        return Result.success(AccountSummary(newBalance))
+        payerAccount.balanceInCents -= amountInCents
+        payeeAccount.balanceInCents += amountInCents
+
+        return Result.success(AccountSummary(payerAccount.balanceInCents))
     }
 }
