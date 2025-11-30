@@ -3,15 +3,17 @@ package com.example.carteiradepagamentos.data.memory
 import com.example.carteiradepagamentos.domain.model.AccountSummary
 import com.example.carteiradepagamentos.domain.model.Contact
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
+import com.example.carteiradepagamentos.domain.service.AuthorizeService
+import com.example.carteiradepagamentos.domain.storage.BalanceStorage
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class InMemoryWalletRepository @Inject constructor() : WalletRepository {
-
-    // Saldo inicial: R$ 1.000,00
-    private var balanceInCents: Long = 100_000L
+class InMemoryWalletRepository @Inject constructor(
+    private val authorizeService: AuthorizeService,
+    private val balanceStorage: BalanceStorage
+) : WalletRepository {
 
     private val contacts = listOf(
         Contact(id = "c1", name = "Alice", accountNumber = "0001-1"),
@@ -21,7 +23,7 @@ class InMemoryWalletRepository @Inject constructor() : WalletRepository {
 
     override suspend fun getAccountSummary(): AccountSummary {
         delay(300)
-        return AccountSummary(balanceInCents)
+        return AccountSummary(balanceStorage.loadBalance())
     }
 
     override suspend fun getContacts(): List<Contact> {
@@ -43,16 +45,19 @@ class InMemoryWalletRepository @Inject constructor() : WalletRepository {
             return Result.failure(IllegalArgumentException("Valor inválido"))
         }
 
-        // Regra especial do desafio: exatamente R$ 403,00 é bloqueado
-        if (amountInCents == 40_300L) {
+        val authorization = authorizeService.authorizeTransfer(amountInCents)
+        val isAllowed = authorization.getOrElse { return Result.failure(it) }
+        if (!isAllowed) {
             return Result.failure(IllegalStateException("operation not allowed"))
         }
 
-        if (amountInCents > balanceInCents) {
+        val currentBalance = balanceStorage.loadBalance()
+        if (amountInCents > currentBalance) {
             return Result.failure(IllegalStateException("Saldo insuficiente"))
         }
 
-        balanceInCents -= amountInCents
-        return Result.success(AccountSummary(balanceInCents))
+        val newBalance = currentBalance - amountInCents
+        balanceStorage.saveBalance(newBalance)
+        return Result.success(AccountSummary(newBalance))
     }
 }
