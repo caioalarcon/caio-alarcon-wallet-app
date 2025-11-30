@@ -1,7 +1,9 @@
 package com.example.carteiradepagamentos.feature.home
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,10 +15,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -24,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
+    onOpenSettings: () -> Unit,
     onContactSelected: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -41,6 +46,7 @@ fun HomeScreen(
 
     HomeContent(
         uiState = uiState,
+        onOpenSettings = onOpenSettings,
         onContactClick = onContactSelected
     )
 }
@@ -48,6 +54,7 @@ fun HomeScreen(
 @Composable
 fun HomeContent(
     uiState: HomeUiState,
+    onOpenSettings: () -> Unit,
     onContactClick: (String) -> Unit
 ) {
     Column(
@@ -55,14 +62,25 @@ fun HomeContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Olá, ${uiState.userName}",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Text(
-            text = uiState.userEmail,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Olá, ${uiState.userName}",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = uiState.userEmail,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            TextButton(onClick = onOpenSettings) {
+                Text(text = "Configurações")
+            }
+        }
 
         Spacer(Modifier.height(16.dp))
 
