@@ -37,6 +37,7 @@ fun LoginScreen(
         val session = uiState.session
         if (uiState.loginSucceeded && session != null) {
             onLoginSuccess(session)
+            viewModel.onLoginHandled()
         }
     }
 

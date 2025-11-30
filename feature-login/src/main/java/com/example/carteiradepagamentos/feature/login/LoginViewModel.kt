@@ -94,4 +94,11 @@ class LoginViewModel @Inject constructor(
             )
         }
     }
+
+    fun onLoginHandled() {
+        _uiState.value = _uiState.value.copy(
+            loginSucceeded = false,
+            session = null
+        )
+    }
 }
