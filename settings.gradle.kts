@@ -21,3 +21,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "Carteira de Pagamentos"
 include(":app")
+include(":core-domain")
+include(":core-data")
+include(":feature-login")
+include(":feature-home")
+include(":feature-transfer")
