@@ -3,6 +3,7 @@ package com.example.carteiradepagamentos.data.local
 import com.example.carteiradepagamentos.domain.model.Session
 import com.example.carteiradepagamentos.domain.model.User
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
+import com.example.carteiradepagamentos.domain.service.AuthRemoteDataSource
 import com.example.carteiradepagamentos.domain.storage.AuthStorage
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -20,8 +21,19 @@ class SharedPrefsAuthRepositoryTest {
         override fun clearSession() { saved = null }
     }
 
-    private fun buildRepository(storage: FakeAuthStorage): AuthRepository =
-        SharedPrefsAuthRepository(storage)
+    class FakeAuthRemoteDataSource(private val shouldSucceed: Boolean = true) : AuthRemoteDataSource {
+        override suspend fun login(email: String, password: String) =
+            if (shouldSucceed) {
+                Result.success(Session(token = "t", user = User("1", "User", email)))
+            } else {
+                Result.failure(IllegalArgumentException("Credenciais inválidas"))
+            }
+    }
+
+    private fun buildRepository(
+        storage: FakeAuthStorage,
+        remote: AuthRemoteDataSource = FakeAuthRemoteDataSource()
+    ): AuthRepository = SharedPrefsAuthRepository(storage, remote)
 
     @Test
     fun `login with valid credentials saves session`() = runTest {
@@ -38,7 +50,7 @@ class SharedPrefsAuthRepositoryTest {
     @Test
     fun `login with invalid credentials fails and does not persist session`() = runTest {
         val storage = FakeAuthStorage()
-        val repository = buildRepository(storage)
+        val repository = buildRepository(storage, remote = FakeAuthRemoteDataSource(shouldSucceed = false))
 
         val result = repository.login("wrong@example.com", "bad")
 

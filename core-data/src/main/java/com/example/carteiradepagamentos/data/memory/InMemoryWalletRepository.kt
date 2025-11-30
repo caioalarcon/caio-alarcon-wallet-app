@@ -2,9 +2,9 @@ package com.example.carteiradepagamentos.data.memory
 
 import com.example.carteiradepagamentos.domain.model.AccountSummary
 import com.example.carteiradepagamentos.domain.model.Contact
+import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
 import com.example.carteiradepagamentos.domain.service.AuthorizeService
-import com.example.carteiradepagamentos.domain.storage.BalanceStorage
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,23 +12,47 @@ import javax.inject.Singleton
 @Singleton
 class InMemoryWalletRepository @Inject constructor(
     private val authorizeService: AuthorizeService,
-    private val balanceStorage: BalanceStorage
+    private val authRepository: AuthRepository
 ) : WalletRepository {
 
-    private val contacts = listOf(
-        Contact(id = "c1", name = "Alice", accountNumber = "0001-1"),
-        Contact(id = "c2", name = "Bob", accountNumber = "0001-2"),
-        Contact(id = "c3", name = "Carol", accountNumber = "0001-3"),
+    private data class AccountState(
+        val ownerUserId: String,
+        val contact: Contact,
+        var balanceInCents: Long
+    )
+
+    private val accounts = mutableListOf(
+        AccountState(
+            ownerUserId = "1",
+            contact = Contact(id = "self", name = "Você", accountNumber = "0000-0"),
+            balanceInCents = 100_000L
+        ),
+        AccountState(
+            ownerUserId = "2",
+            contact = Contact(id = "c1", name = "Alice", accountNumber = "0001-1"),
+            balanceInCents = 50_000L
+        ),
+        AccountState(
+            ownerUserId = "3",
+            contact = Contact(id = "c2", name = "Bob", accountNumber = "0001-2"),
+            balanceInCents = 75_000L
+        ),
+        AccountState(
+            ownerUserId = "4",
+            contact = Contact(id = "c3", name = "Carol", accountNumber = "0001-3"),
+            balanceInCents = 200_000L
+        ),
     )
 
     override suspend fun getAccountSummary(): AccountSummary {
         delay(300)
-        return AccountSummary(balanceStorage.loadBalance())
+        return AccountSummary(currentPayerAccount().balanceInCents)
     }
 
     override suspend fun getContacts(): List<Contact> {
         delay(300)
-        return contacts
+        val payerUserId = currentUserId()
+        return accounts.filter { it.ownerUserId != payerUserId }.map { it.contact }
     }
 
     override suspend fun transfer(
@@ -37,7 +61,11 @@ class InMemoryWalletRepository @Inject constructor(
     ): Result<AccountSummary> {
         delay(500)
 
-        if (contacts.none { it.id == toContactId }) {
+        val payerAccount = currentPayerAccount()
+        val payeeAccount = accounts.firstOrNull { it.contact.id == toContactId }
+            ?: return Result.failure(IllegalArgumentException("Contato inválido"))
+
+        if (payeeAccount.ownerUserId == payerAccount.ownerUserId) {
             return Result.failure(IllegalArgumentException("Contato inválido"))
         }
 
@@ -51,13 +79,24 @@ class InMemoryWalletRepository @Inject constructor(
             return Result.failure(IllegalStateException("operation not allowed"))
         }
 
-        val currentBalance = balanceStorage.loadBalance()
-        if (amountInCents > currentBalance) {
+        if (amountInCents > payerAccount.balanceInCents) {
             return Result.failure(IllegalStateException("Saldo insuficiente"))
         }
 
-        val newBalance = currentBalance - amountInCents
-        balanceStorage.saveBalance(newBalance)
-        return Result.success(AccountSummary(newBalance))
+        payerAccount.balanceInCents -= amountInCents
+        payeeAccount.balanceInCents += amountInCents
+
+        return Result.success(AccountSummary(payerAccount.balanceInCents))
+    }
+
+    private fun currentUserId(): String {
+        return authRepository.getCurrentSession()?.user?.id
+            ?: error("Sessão inexistente ao consultar carteira")
+    }
+
+    private fun currentPayerAccount(): AccountState {
+        val payerId = currentUserId()
+        return accounts.firstOrNull { it.ownerUserId == payerId }
+            ?: error("Conta inexistente para usuário atual")
     }
 }
