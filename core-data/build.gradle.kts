@@ -56,6 +56,9 @@ dependencies {
     implementation("com.squareup.moshi:moshi:1.15.1")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
     kapt(libs.hilt.compiler)
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }
 
 kapt {
