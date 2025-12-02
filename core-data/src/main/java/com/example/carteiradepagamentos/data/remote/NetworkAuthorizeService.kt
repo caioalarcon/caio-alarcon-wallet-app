@@ -10,12 +10,6 @@ class NetworkAuthorizeService @Inject constructor(
 ) : AuthorizeService {
 
     override suspend fun authorizeTransfer(amountInCents: Long): Result<Boolean> {
-        return try {
-            val response = api.authorize(AuthorizeRequest(value = amountInCents))
-
-            Result.success(response.authorized)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return Result.failure(UnsupportedOperationException("Authorize transfer not implemented"))
     }
 }

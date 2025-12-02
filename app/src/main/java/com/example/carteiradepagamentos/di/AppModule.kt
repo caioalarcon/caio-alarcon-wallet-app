@@ -6,7 +6,7 @@ import com.example.carteiradepagamentos.data.local.SharedPrefsUserPreferencesRep
 import com.example.carteiradepagamentos.data.memory.InMemoryWalletRepository
 import com.example.carteiradepagamentos.data.notification.AndroidNotifier
 import com.example.carteiradepagamentos.data.remote.FakeAuthRemoteDataSource
-import com.example.carteiradepagamentos.data.remote.NetworkAuthorizeService
+import com.example.carteiradepagamentos.data.service.FakeAuthorizeService
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.UserPreferencesRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
@@ -58,7 +58,7 @@ abstract class AppModule {
     @Binds
     @Singleton
     abstract fun bindAuthorizeService(
-        impl: NetworkAuthorizeService
+        impl: FakeAuthorizeService
     ): AuthorizeService
 }
 
