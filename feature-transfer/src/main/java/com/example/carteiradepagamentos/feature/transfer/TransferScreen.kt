@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -42,10 +41,6 @@ fun TransferScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     BackHandler(onBack = onBackToHome)
-
-    LaunchedEffect(Unit) {
-        viewModel.reload()
-    }
 
     LaunchedEffect(contactId, uiState.contacts) {
         if (contactId != null && uiState.contacts.isNotEmpty()) {
@@ -132,14 +127,7 @@ fun TransferContent(
             enabled = !uiState.isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Enviar")
-            }
+            Text("Enviar")
         }
 
         uiState.errorMessage?.let { msg ->

@@ -35,7 +35,7 @@ class TransferViewModel @Inject constructor(
 
             _uiState.value = _uiState.value.copy(
                 isLoading = false,
-                balanceText = formatBalance(summary.balanceInCents),
+                balanceText = formatCurrency(summary.balanceInCents),
                 contacts = contacts,
                 selectedContact = contacts.firstOrNull(),
                 amountInput = formatCurrency(0),
@@ -95,7 +95,7 @@ class TransferViewModel @Inject constructor(
                     _uiState.value.copy(
                         isLoading = false,
                         successMessage = "Transferência realizada com sucesso",
-                        balanceText = formatBalance(summary.balanceInCents),
+                        balanceText = formatCurrency(summary.balanceInCents),
                         amountInput = formatCurrency(0),
                         amountInCents = 0,
                     )
@@ -117,12 +117,6 @@ class TransferViewModel @Inject constructor(
                 }
             )
         }
-    }
-
-    private fun formatBalance(balanceInCents: Long): String {
-        val reais = balanceInCents / 100
-        val cents = balanceInCents % 100
-        return "R$ %d,%02d".format(reais, cents)
     }
 
     private fun formatCurrency(amountInCents: Long): String {
