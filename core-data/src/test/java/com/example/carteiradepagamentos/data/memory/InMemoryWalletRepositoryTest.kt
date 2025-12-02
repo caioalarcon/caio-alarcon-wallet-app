@@ -41,7 +41,7 @@ class InMemoryWalletRepositoryTest {
         val result = repository.transfer("acc2", 2_500)
 
         assertTrue(result.isSuccess)
-        assertEquals(97_500, result.getOrNull()?.balanceInCents)
+        assertEquals(97_500L, result.getOrNull()?.balanceInCents)
     }
 
     @Test
@@ -111,6 +111,6 @@ class InMemoryWalletRepositoryTest {
 
         val summary = repository.getAccountSummary()
 
-        assertEquals(75_000, summary.balanceInCents)
+        assertEquals(75_000L, summary.balanceInCents)
     }
 }
