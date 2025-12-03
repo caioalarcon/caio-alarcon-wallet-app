@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.carteiradepagamentos.data.toUserFriendlyMessage
 import com.example.carteiradepagamentos.domain.model.Contact
 import com.example.carteiradepagamentos.domain.format.toBRCurrency
+import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
 import com.example.carteiradepagamentos.domain.service.Notifier
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,20 +20,27 @@ import javax.inject.Inject
 @HiltViewModel
 class TransferViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
-    private val notifier: Notifier
+    private val notifier: Notifier,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TransferUiState(isLoading = true))
     val uiState: StateFlow<TransferUiState> = _uiState.asStateFlow()
+    private var currentUserId: String? = null
 
     init {
         reload()
     }
 
     fun reload() {
+        currentUserId = null
         _uiState.value = TransferUiState(isLoading = true)
         viewModelScope.launch {
             try {
+                val session = authRepository.getCurrentSession()
+                    ?: error("Sessão expirada")
+                currentUserId = session.user.id
+
                 val summary = walletRepository.getAccountSummary()
                 val contacts = walletRepository.getContacts()
 
@@ -94,6 +102,27 @@ class TransferViewModel @Inject constructor(
             _uiState.value = state.copy(
                 errorDialogData = TransferErrorData(
                     message = "Valor inválido",
+                    contactName = contact.name,
+                    contactAccount = contact.accountNumber
+                )
+            )
+            return
+        }
+
+        // valida: payer ≠ payee
+        val currentUserId = currentUserId
+        if (currentUserId == null) {
+            _uiState.value = state.copy(
+                errorDialogData = TransferErrorData(
+                    message = "Sessão expirada, faça login novamente"
+                )
+            )
+            return
+        }
+        if (contact.ownerUserId == currentUserId) {
+            _uiState.value = state.copy(
+                errorDialogData = TransferErrorData(
+                    message = "Você não pode transferir para você mesmo",
                     contactName = contact.name,
                     contactAccount = contact.accountNumber
                 )
@@ -182,11 +211,22 @@ class TransferViewModel @Inject constructor(
             serverMessage?.contains("Saldo insuficiente", ignoreCase = true) == true ->
                 "Saldo insuficiente"
 
+            serverMessage?.contains("payer e payee", ignoreCase = true) == true ||
+                serverMessage?.contains("payer equals payee", ignoreCase = true) == true ->
+                "Você não pode transferir para você mesmo"
+
             serverMessage?.contains("operation not allowed", ignoreCase = true) == true ->
                 "Transferência bloqueada por política de segurança (valor R$ 403,00)"
 
             message?.contains("operation not allowed", ignoreCase = true) == true ->
                 "Transferência bloqueada por política de segurança (valor R$ 403,00)"
+
+            message?.contains("Sessão expirada", ignoreCase = true) == true ->
+                "Sessão expirada, faça login novamente"
+
+            message?.contains("payer e payee", ignoreCase = true) == true ||
+                message?.contains("payer equals payee", ignoreCase = true) == true ->
+                "Você não pode transferir para você mesmo"
 
             message?.contains("Saldo insuficiente", ignoreCase = true) == true ->
                 "Saldo insuficiente"

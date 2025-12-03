@@ -31,6 +31,7 @@ class NetworkWalletRepository @Inject constructor(
         return response.map {
             Contact(
                 id = it.id,
+                ownerUserId = it.ownerUserId,
                 name = it.name,
                 accountNumber = it.accountNumber
             )

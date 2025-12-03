@@ -41,6 +41,7 @@ android {
         implementation(libs.hilt.android)
         implementation(libs.hilt.navigation.compose)
         implementation(libs.kotlinx.coroutines.android)
+        implementation(libs.androidx.activity.compose)
 
         implementation(platform(libs.androidx.compose.bom))
         implementation(libs.androidx.compose.ui)

@@ -102,6 +102,7 @@ app.get("/wallet/contacts", (req, res) => {
       const owner = users.find((u) => u.id === acc.ownerUserId);
       return {
         id: acc.id,
+        ownerUserId: acc.ownerUserId,
         name: owner ? owner.name : "Desconhecido",
         accountNumber: `0001-${acc.id.slice(-1)}`,
       };

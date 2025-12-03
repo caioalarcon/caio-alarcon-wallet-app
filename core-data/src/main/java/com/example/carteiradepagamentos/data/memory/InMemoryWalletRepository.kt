@@ -74,6 +74,7 @@ class InMemoryWalletRepository @Inject constructor(
             .map { account ->
                 Contact(
                     id = account.id,
+                    ownerUserId = account.ownerUserId,
                     name = account.ownerName,
                     accountNumber = account.accountNumber
                 )

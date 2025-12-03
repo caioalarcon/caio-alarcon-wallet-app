@@ -22,18 +22,23 @@ Aplicativo Android em Jetpack Compose com arquitetura modular para autenticaçã
 ## Decisões arquiteturais
 - **Modularização por camada**: `core-domain` (modelos/contratos puros), `core-data` (repos, integrações e mocks), `app` (configuração DI), `feature-*` (telas de login, home e transferência). 【F:app/build.gradle.kts†L62-L66】【F:app/src/main/java/com/example/carteiradepagamentos/di/AppModule.kt†L28-L74】
 - **Injeção de dependências**: Hilt centraliza binds em `AppModule` (repos, storage, notifier, serviços). 【F:app/src/main/java/com/example/carteiradepagamentos/di/AppModule.kt†L28-L74】
-- **Rede com mock embutido**: `NetworkModule` cria OkHttp/Retrofit e injeta `FakeAuthorizeInterceptor` apenas em debug, permitindo rodar offline. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/di/NetworkModule.kt†L17-L59】
-- **Serviço de autorização**: `NetworkAuthorizeService` converte centavos para `Double` e chama `/authorize`, encapsulando falhas em `Result`. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/NetworkAuthorizeService.kt†L7-L20】
+- **Rede mockada**: `NetworkModule` cria Retrofit apontando para o servidor Node local; o interceptor `FakeAuthorizeInterceptor` está disponível para debug se quiser rodar offline. 【F:app/src/main/java/com/example/carteiradepagamentos/di/NetworkModule.kt†L17-L43】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/FakeAuthorizeInterceptor.kt†L11-L47】
+- **Serviço de autorização**: `NetworkAuthorizeService` envia o valor em centavos para `/authorize`, encapsulando falhas em `Result`. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/NetworkAuthorizeService.kt†L7-L20】
+- **Auto-login com token salvo**: `SharedPrefsAuthStorage` persiste `Session`; o `AppViewModel` inicia verificando `authRepository.getCurrentSession()` e decide entre Login e Home sem tela intermediária. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/local/SharedPrefsAuthRepository.kt†L14-L40】【F:app/src/main/java/com/example/carteiradepagamentos/AppViewModel.kt†L17-L47】
+
+## Mocks HTTP e contrato `/authorize`
+- O servidor local fica em `simple server` (`npm start`), com endpoints `/auth/login`, `/wallet/summary`, `/wallet/contacts`, `/wallet/transfer` e **`/authorize`**.
+- `/authorize` segue o contrato da especificação: `POST /authorize { "value": <centavos> } → { "authorized": true }`; para `40300` retorna `{ "authorized": false, "reason": "operation not allowed" }`. 【F:simple server/index.js†L122-L144】
+- `GET /wallet/contacts` devolve `ownerUserId` de cada conta, garantindo que o app bloqueie payer = payee na camada de apresentação. 【F:simple server/index.js†L67-L88】
 
 ## Como reproduzir o cenário do valor 403
 1. No fluxo de transferência, informe o valor **R$ 403,00** (campo aceita centavos, portanto `40300`).
-2. O interceptor de debug devolve `authorized=false` com razão `operation not allowed`, e o `TransferViewModel` exibe a mensagem "Transferência bloqueada por política de segurança (valor R$ 403,00)". 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/FakeAuthorizeInterceptor.kt†L16-L45】【F:feature-transfer/src/main/java/com/example/carteiradepagamentos/feature/transfer/TransferViewModel.kt†L62-L113】
+2. O endpoint `/authorize` do servidor (ou o `FakeAuthorizeInterceptor`, se ativado) devolve `authorized=false` com razão `operation not allowed`, e o `TransferViewModel` exibe a mensagem "Transferência bloqueada por política de segurança (valor R$ 403,00)". 【F:simple server/index.js†L122-L144】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/FakeAuthorizeInterceptor.kt†L16-L45】【F:feature-transfer/src/main/java/com/example/carteiradepagamentos/feature/transfer/TransferViewModel.kt†L62-L113】
 
-## Notificação local
-- O `AndroidNotifier` cria o canal `transfers` e envia uma notificação de sucesso após a transferência, com valor formatado e nome do contato. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/notification/AndroidNotifier.kt†L15-L52】
-- Em Android 13+ (API 33+), é necessário garantir a permissão de notificações (`POST_NOTIFICATIONS`). Adicione-a ao `AndroidManifest.xml` e solicite em tempo de execução antes de testar o fluxo; caso contrário, o sistema bloqueará o toast/alerta.
+## Validações da transferência e push local
+- Validações aplicadas: contato selecionado, valor > 0, saldo suficiente, **payer ≠ payee** (usa `ownerUserId` do contato e o `user.id` da sessão atual). 【F:feature-transfer/src/main/java/com/example/carteiradepagamentos/feature/transfer/TransferViewModel.kt†L70-L123】
+- Após autorização, o `AndroidNotifier` dispara uma notificação local formatada; em API 33+, a permissão `POST_NOTIFICATIONS` é declarada e solicitada automaticamente ao abrir a tela de transferência. 【F:app/src/main/AndroidManifest.xml†L3-L7】【F:feature-transfer/src/main/java/com/example/carteiradepagamentos/feature/transfer/TransferScreen.kt†L28-L67】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/notification/AndroidNotifier.kt†L15-L52】
 
 ## TODOs de prints
 - TODO: Adicionar print/GIF da Home.
 - TODO: Adicionar print/GIF da tela de Transferência.
-

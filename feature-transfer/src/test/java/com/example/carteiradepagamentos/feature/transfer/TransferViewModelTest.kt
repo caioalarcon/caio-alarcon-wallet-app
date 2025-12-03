@@ -3,6 +3,9 @@ package com.example.carteiradepagamentos.feature.transfer
 import com.example.carteiradepagamentos.MainDispatcherRule
 import com.example.carteiradepagamentos.domain.model.AccountSummary
 import com.example.carteiradepagamentos.domain.model.Contact
+import com.example.carteiradepagamentos.domain.model.Session
+import com.example.carteiradepagamentos.domain.model.User
+import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
 import com.example.carteiradepagamentos.domain.service.Notifier
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -49,13 +52,30 @@ class TransferViewModelTest {
         }
     }
 
-    private val contacts = listOf(Contact(id = "1", name = "Alice", accountNumber = "0001-1"))
+    private val contacts = listOf(
+        Contact(id = "acc1", ownerUserId = "2", name = "Alice", accountNumber = "0001-1"),
+        Contact(id = "acc2", ownerUserId = "1", name = "Self", accountNumber = "0001-0")
+    )
+
+    private class FakeAuthRepository(
+        private val session: Session? = Session(
+            token = "token",
+            user = User(id = "1", name = "User", email = "user@example.com")
+        )
+    ) : AuthRepository {
+        override suspend fun login(email: String, password: String): Result<Session> =
+            Result.failure(UnsupportedOperationException("Not used"))
+
+        override suspend fun logout() = Unit
+
+        override suspend fun getCurrentSession(): Session? = session
+    }
 
     @Test
     fun `onConfirmTransfer without selected contact shows error`() = runTest {
         val notifier = FakeNotifier()
         val repository = FakeWalletRepository(AccountSummary(1_000), emptyList())
-        val viewModel = TransferViewModel(repository, notifier)
+        val viewModel = TransferViewModel(repository, notifier, FakeAuthRepository())
 
         advanceUntilIdle()
 
@@ -69,7 +89,7 @@ class TransferViewModelTest {
     fun `onConfirmTransfer with invalid amount shows error`() = runTest {
         val notifier = FakeNotifier()
         val repository = FakeWalletRepository(AccountSummary(1_000), contacts)
-        val viewModel = TransferViewModel(repository, notifier)
+        val viewModel = TransferViewModel(repository, notifier, FakeAuthRepository())
 
         advanceUntilIdle()
 
@@ -84,7 +104,7 @@ class TransferViewModelTest {
     fun `onConfirmTransfer success updates state and notifies`() = runTest {
         val notifier = FakeNotifier()
         val repository = FakeWalletRepository(AccountSummary(10_000), contacts)
-        val viewModel = TransferViewModel(repository, notifier)
+        val viewModel = TransferViewModel(repository, notifier, FakeAuthRepository())
 
         advanceUntilIdle()
 
@@ -106,7 +126,7 @@ class TransferViewModelTest {
         val notifier = FakeNotifier()
         val repository = FakeWalletRepository(AccountSummary(50_000), contacts)
         repository.setTransferResult(Result.failure(IllegalStateException("operation not allowed")))
-        val viewModel = TransferViewModel(repository, notifier)
+        val viewModel = TransferViewModel(repository, notifier, FakeAuthRepository())
 
         advanceUntilIdle()
 
@@ -127,7 +147,7 @@ class TransferViewModelTest {
         val notifier = FakeNotifier()
         val repository = FakeWalletRepository(AccountSummary(1_000), contacts)
         repository.setTransferResult(Result.failure(IllegalStateException("Saldo insuficiente")))
-        val viewModel = TransferViewModel(repository, notifier)
+        val viewModel = TransferViewModel(repository, notifier, FakeAuthRepository())
 
         advanceUntilIdle()
 
@@ -137,6 +157,24 @@ class TransferViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals("Saldo insuficiente", state.errorDialogData?.message)
+        assertNull(notifier.lastNotification)
+    }
+
+    @Test
+    fun `onConfirmTransfer blocks transfer to self`() = runTest {
+        val notifier = FakeNotifier()
+        val repository = FakeWalletRepository(AccountSummary(5_000), contacts)
+        val viewModel = TransferViewModel(repository, notifier, FakeAuthRepository())
+
+        advanceUntilIdle()
+
+        // Seleciona contato cuja ownerUserId é igual ao usuário logado (self)
+        viewModel.onContactSelected(contacts[1])
+        viewModel.onAmountChanged("100")
+        viewModel.onConfirmTransfer()
+
+        val state = viewModel.uiState.value
+        assertEquals("Você não pode transferir para você mesmo", state.errorDialogData?.message)
         assertNull(notifier.lastNotification)
     }
 }

@@ -4,6 +4,7 @@
 
 # === Gradle ===
 .gradle/
+/.gradle-tmp/
 **/build/
 !gradle/wwrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties

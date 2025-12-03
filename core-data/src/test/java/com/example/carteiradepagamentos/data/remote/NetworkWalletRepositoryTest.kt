@@ -118,8 +118,8 @@ class NetworkWalletRepositoryTest {
                 .setBody(
                     """
                     [
-                      {"id":"acc2","name":"Alice","accountNumber":"0001-2"},
-                      {"id":"acc3","name":"Bob","accountNumber":"0001-3"}
+                      {"id":"acc2","ownerUserId":"2","name":"Alice","accountNumber":"0001-2"},
+                      {"id":"acc3","ownerUserId":"3","name":"Bob","accountNumber":"0001-3"}
                     ]
                     """.trimIndent()
                 )
@@ -129,6 +129,7 @@ class NetworkWalletRepositoryTest {
 
         assertEquals(2, contacts.size)
         assertEquals("acc2", contacts[0].id)
+        assertEquals("2", contacts[0].ownerUserId)
         assertEquals("Alice", contacts[0].name)
         assertEquals("0001-2", contacts[0].accountNumber)
 

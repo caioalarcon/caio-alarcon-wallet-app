@@ -1,6 +1,11 @@
 package com.example.carteiradepagamentos.feature.transfer
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -37,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.core.content.ContextCompat
 import com.example.carteiradepagamentos.domain.model.Contact
 
 @Composable
@@ -48,6 +55,10 @@ fun TransferScreen(
     val uiState by viewModel.uiState.collectAsState()
     val dialogVisible = uiState.successDialogData != null || uiState.errorDialogData != null
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+    val notificationsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* ignored: apenas habilita push local */ }
 
     BackHandler(enabled = !dialogVisible, onBack = onBackToHome)
 
@@ -66,6 +77,18 @@ fun TransferScreen(
             val target = uiState.contacts.find { it.id == contactId }
             if (target != null && uiState.selectedContact?.id != contactId) {
                 viewModel.onContactSelected(target)
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!hasPermission) {
+                notificationsPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
