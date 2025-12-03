@@ -77,6 +77,7 @@ class TransferViewModel @Inject constructor(
         val state = _uiState.value
         val contact = state.selectedContact
 
+        // valida: contato selecionado
         if (contact == null) {
             _uiState.value = state.copy(
                 errorDialogData = TransferErrorData(
@@ -87,6 +88,7 @@ class TransferViewModel @Inject constructor(
             return
         }
 
+        // valida: valor > 0
         val amountInCents = state.amountInCents.takeIf { it > 0 }
         if (amountInCents == null) {
             _uiState.value = state.copy(
@@ -99,6 +101,7 @@ class TransferViewModel @Inject constructor(
             return
         }
 
+        // valida: saldo suficiente (local)
         if (amountInCents > state.balanceInCents) {
             _uiState.value = state.copy(
                 errorDialogData = TransferErrorData(
@@ -162,25 +165,34 @@ class TransferViewModel @Inject constructor(
     }
 
     private fun Throwable.resolveFriendlyMessage(): String {
-        val (serverMessage, serverReason) = (this as? HttpException)?.let { http ->
+        val serverMessage = (this as? HttpException)?.let { http ->
             runCatching {
-                http.response()?.errorBody()?.string()?.let { body ->
-                    val json = JSONObject(body)
-                    (json.optString("message"), json.optString("reason"))
-                }
+                http.response()
+                    ?.errorBody()
+                    ?.string()
+                    ?.let { body ->
+                        JSONObject(body)
+                            .optString("message")
+                            .takeIf { it.isNotBlank() }
+                    }
             }.getOrNull()
-        } ?: (null to null)
-
-        val anyServerText = listOfNotNull(serverMessage, serverReason).firstOrNull { it.isNotBlank() }
+        }
 
         return when {
-            anyServerText?.contains("Saldo insuficiente", ignoreCase = true) == true -> "Saldo insuficiente"
-            anyServerText?.contains("operation not allowed", ignoreCase = true) == true ->
+            serverMessage?.contains("Saldo insuficiente", ignoreCase = true) == true ->
+                "Saldo insuficiente"
+
+            serverMessage?.contains("operation not allowed", ignoreCase = true) == true ->
                 "Transferência bloqueada por política de segurança (valor R$ 403,00)"
+
             message?.contains("operation not allowed", ignoreCase = true) == true ->
                 "Transferência bloqueada por política de segurança (valor R$ 403,00)"
-            message?.contains("Saldo insuficiente", ignoreCase = true) == true -> "Saldo insuficiente"
-            anyServerText != null -> anyServerText
+
+            message?.contains("Saldo insuficiente", ignoreCase = true) == true ->
+                "Saldo insuficiente"
+
+            serverMessage != null -> serverMessage
+
             else -> toUserFriendlyMessage()
         }
     }
