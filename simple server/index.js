@@ -15,14 +15,14 @@ const users = [
 ];
 
 const accounts = [
-  { id: "acc1", userId: "1", balanceInCents: 100_000 },
-  { id: "acc2", userId: "2", balanceInCents: 50_000 },
-  { id: "acc3", userId: "3", balanceInCents: 75_000 },
-  { id: "acc4", userId: "4", balanceInCents: 120_000 },
+  { id: "acc1", ownerUserId: "1", balanceInCents: 100_000 },
+  { id: "acc2", ownerUserId: "2", balanceInCents: 50_000 },
+  { id: "acc3", ownerUserId: "3", balanceInCents: 75_000 },
+  { id: "acc4", ownerUserId: "4", balanceInCents: 25_000 },
 ];
 
 function findAccountByUserId(userId) {
-  return accounts.find((acc) => acc.userId === userId);
+  return accounts.find((acc) => acc.ownerUserId === userId);
 }
 
 function findAccountById(id) {
@@ -58,9 +58,9 @@ app.get("/wallet/summary", (req, res) => {
 app.get("/wallet/contacts", (req, res) => {
   const userId = req.query.userId;
   const contacts = accounts
-    .filter((acc) => acc.userId !== userId)
+    .filter((acc) => acc.ownerUserId !== userId)
     .map((acc) => {
-      const owner = users.find((u) => u.id === acc.userId);
+      const owner = users.find((u) => u.id === acc.ownerUserId);
       return {
         id: acc.id,
         name: owner ? owner.name : "Desconhecido",
@@ -77,8 +77,12 @@ app.post("/wallet/transfer", (req, res) => {
   const payer = findAccountByUserId(userId);
   const payee = findAccountById(toContactId);
 
-  if (!payer || !payee) {
+  if (!payee) {
     return res.status(400).json({ message: "Contato inválido" });
+  }
+
+  if (!payer) {
+    return res.status(400).json({ message: "Conta não encontrada" });
   }
 
   if (payer.id === payee.id) {
@@ -91,6 +95,11 @@ app.post("/wallet/transfer", (req, res) => {
 
   if (amountInCents > payer.balanceInCents) {
     return res.status(400).json({ message: "Saldo insuficiente" });
+  }
+
+  const authorized = amountInCents !== 40_300;
+  if (!authorized) {
+    return res.status(400).json({ message: "operation not allowed" });
   }
 
   payer.balanceInCents -= amountInCents;

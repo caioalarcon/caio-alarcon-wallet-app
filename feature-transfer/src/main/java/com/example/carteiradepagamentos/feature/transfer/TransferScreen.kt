@@ -13,16 +13,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,7 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.carteiradepagamentos.domain.model.Contact
 
 @Composable
@@ -40,9 +45,20 @@ fun TransferScreen(
     viewModel: TransferViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val successDialogVisible = uiState.successDialogData != null
+    val dialogVisible = uiState.successDialogData != null || uiState.errorDialogData != null
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    BackHandler(enabled = !successDialogVisible, onBack = onBackToHome)
+    BackHandler(enabled = !dialogVisible, onBack = onBackToHome)
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                viewModel.reload()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(contactId, uiState.contacts) {
         if (contactId != null && uiState.contacts.isNotEmpty()) {
@@ -64,10 +80,35 @@ fun TransferScreen(
     )
 
     uiState.successDialogData?.let { successData ->
-        TransferSuccessDialog(
-            successData = successData,
+        TransferOutcomeDialog(
+            title = "Transferência enviada",
+            message = null,
+            amountText = successData.amountText,
+            contactName = successData.contactName,
+            contactAccount = successData.contactAccount,
+            confirmLabel = "OK",
             onConfirm = {
                 viewModel.clearSuccessDialog()
+                onBackToHome()
+            }
+        )
+    }
+
+    uiState.errorDialogData?.let { errorData ->
+        TransferOutcomeDialog(
+            title = "Erro na transferência",
+            message = errorData.message,
+            amountText = errorData.amountText,
+            contactName = errorData.contactName,
+            contactAccount = errorData.contactAccount,
+            confirmLabel = "Tentar novamente",
+            onConfirm = {
+                viewModel.clearErrorDialog()
+                viewModel.reload()
+            },
+            dismissLabel = "Voltar",
+            onDismiss = {
+                viewModel.clearErrorDialog()
                 onBackToHome()
             }
         )
@@ -134,36 +175,78 @@ fun TransferContent(
         ) {
             Text("Enviar")
         }
+    }
+}
 
-        uiState.errorMessage?.let { msg ->
-            Spacer(Modifier.height(8.dp))
-            Text(msg, color = MaterialTheme.colorScheme.error)
+@Composable
+private fun TransferOutcomeDialog(
+    title: String,
+    message: String?,
+    amountText: String?,
+    contactName: String?,
+    contactAccount: String?,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    dismissLabel: String? = null,
+    onDismiss: (() -> Unit)? = null,
+) {
+    val handleDismiss = onDismiss ?: onConfirm
+    Dialog(onDismissRequest = handleDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(12.dp))
+                TransferDialogContent(
+                    message = message,
+                    amountText = amountText,
+                    contactName = contactName,
+                    contactAccount = contactAccount
+                )
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    dismissLabel?.let {
+                        TextButton(onClick = handleDismiss) { Text(it) }
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Button(onClick = onConfirm) { Text(confirmLabel) }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun TransferSuccessDialog(
-    successData: TransferSuccessData,
-    onConfirm: () -> Unit,
+private fun TransferDialogContent(
+    message: String?,
+    amountText: String?,
+    contactName: String?,
+    contactAccount: String?,
 ) {
-    AlertDialog(
-        onDismissRequest = onConfirm,
-        confirmButton = {
-            Button(onClick = onConfirm) {
-                Text("OK")
-            }
-        },
-        title = { Text("Transferência enviada") },
-        text = {
-            Column {
-                Text("Valor: ${successData.amountText}")
-                Spacer(Modifier.height(4.dp))
-                Text("Destinatário: ${successData.contactName}")
-                Text("Conta: ${successData.contactAccount}")
+    Column {
+        message?.let {
+            Text(it)
+            if (amountText != null || !contactName.isNullOrBlank() || !contactAccount.isNullOrBlank()) {
+                Spacer(Modifier.height(8.dp))
             }
         }
-    )
+        amountText?.let {
+            Text("Valor: $it")
+        }
+        if (!contactName.isNullOrBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Text("Destinatário: $contactName")
+        }
+        if (!contactAccount.isNullOrBlank()) {
+            Text("Conta: $contactAccount")
+        }
+    }
 }
 
 @Composable

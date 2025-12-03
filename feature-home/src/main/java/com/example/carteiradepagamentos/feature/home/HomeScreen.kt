@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -50,7 +51,8 @@ fun HomeScreen(
     HomeContent(
         uiState = uiState,
         onOpenSettings = onOpenSettings,
-        onContactClick = onContactSelected
+        onContactClick = onContactSelected,
+        onRetry = { viewModel.load() }
     )
 }
 
@@ -58,7 +60,8 @@ fun HomeScreen(
 fun HomeContent(
     uiState: HomeUiState,
     onOpenSettings: () -> Unit,
-    onContactClick: (String) -> Unit
+    onContactClick: (String) -> Unit,
+    onRetry: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -130,10 +133,19 @@ fun HomeContent(
 
         uiState.errorMessage?.let { msg ->
             Spacer(Modifier.height(8.dp))
-            Text(
-                text = msg,
-                color = MaterialTheme.colorScheme.error
-            )
+            Column {
+                Text(
+                    text = msg,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(Modifier.height(4.dp))
+                Button(
+                    onClick = onRetry,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Tentar novamente")
+                }
+            }
         }
     }
 }

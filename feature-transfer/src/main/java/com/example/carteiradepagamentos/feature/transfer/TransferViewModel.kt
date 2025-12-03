@@ -2,16 +2,18 @@ package com.example.carteiradepagamentos.feature.transfer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.carteiradepagamentos.data.toUserFriendlyMessage
 import com.example.carteiradepagamentos.domain.model.Contact
+import com.example.carteiradepagamentos.domain.format.toBRCurrency
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
 import com.example.carteiradepagamentos.domain.service.Notifier
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.text.NumberFormat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.Locale
+import org.json.JSONObject
+import retrofit2.HttpException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,19 +32,26 @@ class TransferViewModel @Inject constructor(
     fun reload() {
         _uiState.value = TransferUiState(isLoading = true)
         viewModelScope.launch {
-            val summary = walletRepository.getAccountSummary()
-            val contacts = walletRepository.getContacts()
+            try {
+                val summary = walletRepository.getAccountSummary()
+                val contacts = walletRepository.getContacts()
 
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                balanceText = formatCurrency(summary.balanceInCents),
-                contacts = contacts,
-                selectedContact = contacts.firstOrNull(),
-                amountInput = formatCurrency(0),
-                amountInCents = 0,
-                errorMessage = null,
-                successDialogData = null
-            )
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    balanceText = summary.balanceInCents.toBRCurrency(),
+                    contacts = contacts,
+                    selectedContact = contacts.firstOrNull(),
+                    amountInput = 0.toBRCurrency(),
+                    amountInCents = 0,
+                    successDialogData = null,
+                    errorDialogData = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = TransferUiState(
+                    isLoading = false,
+                    errorDialogData = TransferErrorData(e.resolveFriendlyMessage())
+                )
+            }
         }
     }
 
@@ -50,9 +59,8 @@ class TransferViewModel @Inject constructor(
         val amountDigits = value.filter(Char::isDigit)
         val amountInCents = amountDigits.toLongOrNull() ?: 0
         _uiState.value = _uiState.value.copy(
-            amountInput = formatCurrency(amountInCents),
+            amountInput = amountInCents.toBRCurrency(),
             amountInCents = amountInCents,
-            errorMessage = null,
             successDialogData = null
         )
     }
@@ -60,7 +68,6 @@ class TransferViewModel @Inject constructor(
     fun onContactSelected(contact: Contact) {
         _uiState.value = _uiState.value.copy(
             selectedContact = contact,
-            errorMessage = null,
             successDialogData = null
         )
     }
@@ -70,20 +77,30 @@ class TransferViewModel @Inject constructor(
         val contact = state.selectedContact
 
         if (contact == null) {
-            _uiState.value = state.copy(errorMessage = "Selecione um contato")
+            _uiState.value = state.copy(
+                errorDialogData = TransferErrorData(
+                    message = "Selecione um contato",
+                    amountText = state.amountInCents.toBRCurrency()
+                )
+            )
             return
         }
 
         val amountInCents = state.amountInCents.takeIf { it > 0 }
         if (amountInCents == null) {
-            _uiState.value = state.copy(errorMessage = "Valor inválido")
+            _uiState.value = state.copy(
+                errorDialogData = TransferErrorData(
+                    message = "Valor inválido",
+                    contactName = contact.name,
+                    contactAccount = contact.accountNumber
+                )
+            )
             return
         }
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                errorMessage = null,
                 successDialogData = null
             )
 
@@ -97,26 +114,24 @@ class TransferViewModel @Inject constructor(
                         successDialogData = TransferSuccessData(
                             contactName = contact.name,
                             contactAccount = contact.accountNumber,
-                            amountText = formatCurrency(amountInCents),
+                            amountText = amountInCents.toBRCurrency(),
                         ),
-                        balanceText = formatCurrency(summary.balanceInCents),
-                        amountInput = formatCurrency(0),
+                        balanceText = summary.balanceInCents.toBRCurrency(),
+                        amountInput = 0.toBRCurrency(),
                         amountInCents = 0,
                     )
                 },
                 onFailure = { error ->
-                    val message = when {
-                        error.message?.contains("operation not allowed", ignoreCase = true) == true ->
-                            "Transferência bloqueada por política de segurança (valor R$ 403,00)"
-                        error.message?.contains("Saldo insuficiente", ignoreCase = true) == true ->
-                            "Saldo insuficiente"
-                        else ->
-                            error.message ?: "Erro na transferência"
-                    }
+                    val message = error.resolveFriendlyMessage()
 
                     _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = message,
+                        errorDialogData = TransferErrorData(
+                            message = message,
+                            amountText = amountInCents.toBRCurrency(),
+                            contactName = contact.name,
+                            contactAccount = contact.accountNumber,
+                        ),
                         successDialogData = null
                     )
                 }
@@ -124,12 +139,32 @@ class TransferViewModel @Inject constructor(
         }
     }
 
-    private fun formatCurrency(amountInCents: Long): String {
-        val formatter = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
-        return formatter.format(amountInCents / 100.0).replace('\u00A0', ' ')
-    }
-
     fun clearSuccessDialog() {
         _uiState.value = _uiState.value.copy(successDialogData = null)
+    }
+
+    fun clearErrorDialog() {
+        _uiState.value = _uiState.value.copy(errorDialogData = null)
+    }
+
+    private fun Throwable.resolveFriendlyMessage(): String {
+        val serverMessage = (this as? HttpException)?.let { http ->
+            runCatching {
+                http.response()?.errorBody()?.string()?.let { body ->
+                    JSONObject(body).optString("message").takeIf { it.isNotBlank() }
+                }
+            }.getOrNull()
+        }
+
+        return when {
+            serverMessage?.contains("Saldo insuficiente", ignoreCase = true) == true -> "Saldo insuficiente"
+            serverMessage?.contains("operation not allowed", ignoreCase = true) == true ->
+                "Transferência bloqueada por política de segurança (valor R$ 403,00)"
+            message?.contains("operation not allowed", ignoreCase = true) == true ->
+                "Transferência bloqueada por política de segurança (valor R$ 403,00)"
+            message?.contains("Saldo insuficiente", ignoreCase = true) == true -> "Saldo insuficiente"
+            serverMessage != null -> serverMessage
+            else -> toUserFriendlyMessage()
+        }
     }
 }
