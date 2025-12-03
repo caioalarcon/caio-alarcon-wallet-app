@@ -100,9 +100,11 @@ paths:
                   $ref: '#/components/schemas/Contact'
               example:
                 - id: acc2
+                  ownerUserId: "2"
                   name: Alice
                   accountNumber: 0001-2
                 - id: acc3
+                  ownerUserId: "3"
                   name: Bob
                   accountNumber: 0001-3
   /wallet/transfer:
@@ -228,11 +230,14 @@ components:
           minimum: 0
     Contact:
       type: object
-      required: [id, name, accountNumber]
+      required: [id, ownerUserId, name, accountNumber]
       properties:
         id:
           type: string
           description: ID da conta de destino
+        ownerUserId:
+          type: string
+          description: ID do usuário que possui a conta
         name:
           type: string
         accountNumber:

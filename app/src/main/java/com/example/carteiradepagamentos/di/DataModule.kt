@@ -1,9 +1,9 @@
 package com.example.carteiradepagamentos.di
 
 import com.example.carteiradepagamentos.data.local.SharedPrefsAuthRepository
-import com.example.carteiradepagamentos.data.remote.NetworkAuthRemoteDataSource
-import com.example.carteiradepagamentos.data.remote.NetworkAuthorizeService
-import com.example.carteiradepagamentos.data.remote.NetworkWalletRepository
+import com.example.carteiradepagamentos.data.remote.ConfigurableAuthRemoteDataSource
+import com.example.carteiradepagamentos.data.remote.ConfigurableWalletRepository
+import com.example.carteiradepagamentos.data.service.ConfigurableAuthorizeService
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
 import com.example.carteiradepagamentos.domain.service.AuthRemoteDataSource
@@ -21,7 +21,7 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindAuthRemoteDataSource(
-        impl: NetworkAuthRemoteDataSource
+        impl: ConfigurableAuthRemoteDataSource
     ): AuthRemoteDataSource
 
     @Binds
@@ -33,12 +33,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindWalletRepository(
-        impl: NetworkWalletRepository
+        impl: ConfigurableWalletRepository
     ): WalletRepository
 
     @Binds
     @Singleton
     abstract fun bindAuthorizeService(
-        impl: NetworkAuthorizeService
+        impl: ConfigurableAuthorizeService
     ): AuthorizeService
 }

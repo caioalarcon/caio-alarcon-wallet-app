@@ -11,7 +11,7 @@ API mock em Node/Express usada pelo app de carteira para desenvolvimento local. 
 ## Endpoints rápidos
 - `POST /auth/login` — Autentica usuário mock e devolve token fake + dados do usuário.
 - `GET /wallet/summary?userId={id}` — Retorna o saldo em centavos da conta do usuário.
-- `GET /wallet/contacts?userId={id}` — Lista contas de outros usuários para transferências.
+- `GET /wallet/contacts?userId={id}` — Lista contas de outros usuários para transferências, incluindo `ownerUserId` para validar payer ≠ payee.
 - `POST /wallet/transfer` — Valida e transfere saldo entre contas mock (`userId`, `toContactId`, `amountInCents`).
 - `POST /authorize` — Autoriza um valor; `value = 40300` sempre retorna `authorized=false`.
 

@@ -60,7 +60,10 @@ class HomeViewModelTest {
     @Test
     fun `when session exists home data is populated`() = runTest {
         val session = Session(token = "token", user = User("1", "Usuário", "user@example.com"))
-        val contacts = listOf(Contact("1", "Alice", "0001-1"), Contact("2", "Bob", "0001-2"))
+        val contacts = listOf(
+            Contact(id = "1", ownerUserId = "2", name = "Alice", accountNumber = "0001-1"),
+            Contact(id = "2", ownerUserId = "3", name = "Bob", accountNumber = "0001-2")
+        )
         val authRepository = FakeAuthRepository(session)
         val walletRepository = FakeWalletRepository(AccountSummary(12_345), contacts)
         val viewModel = HomeViewModel(authRepository, walletRepository)

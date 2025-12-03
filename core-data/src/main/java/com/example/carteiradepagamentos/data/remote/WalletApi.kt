@@ -11,6 +11,7 @@ data class AccountSummaryResponse(
 
 data class ContactResponse(
     val id: String,
+    val ownerUserId: String,
     val name: String,
     val accountNumber: String
 )
