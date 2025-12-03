@@ -44,10 +44,10 @@ fun TransferScreen(
     viewModel: TransferViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val successDialogVisible = uiState.successDialogData != null
+    val dialogVisible = uiState.successDialogData != null || uiState.errorDialogData != null
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    BackHandler(enabled = !successDialogVisible, onBack = onBackToHome)
+    BackHandler(enabled = !dialogVisible, onBack = onBackToHome)
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -79,8 +79,13 @@ fun TransferScreen(
     )
 
     uiState.successDialogData?.let { successData ->
-        TransferSuccessDialog(
-            successData = successData,
+        TransferOutcomeDialog(
+            title = "Transferência enviada",
+            message = null,
+            amountText = successData.amountText,
+            contactName = successData.contactName,
+            contactAccount = successData.contactAccount,
+            confirmLabel = "OK",
             onConfirm = {
                 viewModel.clearSuccessDialog()
                 onBackToHome()
@@ -89,16 +94,19 @@ fun TransferScreen(
     }
 
     uiState.errorDialogData?.let { errorData ->
-        TransferErrorDialog(
+        TransferOutcomeDialog(
+            title = "Erro na transferência",
             message = errorData.message,
             amountText = errorData.amountText,
             contactName = errorData.contactName,
             contactAccount = errorData.contactAccount,
-            onRetry = {
+            confirmLabel = "Tentar novamente",
+            onConfirm = {
                 viewModel.clearErrorDialog()
                 viewModel.reload()
             },
-            onCancel = {
+            dismissLabel = "Voltar",
+            onDismiss = {
                 viewModel.clearErrorDialog()
                 onBackToHome()
             }
@@ -170,47 +178,27 @@ fun TransferContent(
 }
 
 @Composable
-private fun TransferSuccessDialog(
-    successData: TransferSuccessData,
-    onConfirm: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onConfirm,
-        confirmButton = {
-            Button(onClick = onConfirm) {
-                Text("OK")
-            }
-        },
-        title = { Text("Transferência enviada") },
-        text = {
-            TransferDialogContent(
-                message = null,
-                amountText = successData.amountText,
-                contactName = successData.contactName,
-                contactAccount = successData.contactAccount
-            )
-        }
-    )
-}
-
-@Composable
-private fun TransferErrorDialog(
-    message: String,
+private fun TransferOutcomeDialog(
+    title: String,
+    message: String?,
     amountText: String?,
     contactName: String?,
     contactAccount: String?,
-    onRetry: () -> Unit,
-    onCancel: () -> Unit,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    dismissLabel: String? = null,
+    onDismiss: (() -> Unit)? = null,
 ) {
+    val handleDismiss = onDismiss ?: onConfirm
     AlertDialog(
-        onDismissRequest = onRetry,
+        onDismissRequest = handleDismiss,
         confirmButton = {
-            Button(onClick = onRetry) { Text("Tentar novamente") }
+            Button(onClick = onConfirm) { Text(confirmLabel) }
         },
-        dismissButton = {
-            TextButton(onClick = onCancel) { Text("Voltar") }
+        dismissButton = dismissLabel?.let {
+            { TextButton(onClick = { handleDismiss() }) { Text(it) } }
         },
-        title = { Text("Erro na transferência") },
+        title = { Text(title) },
         text = {
             TransferDialogContent(
                 message = message,
