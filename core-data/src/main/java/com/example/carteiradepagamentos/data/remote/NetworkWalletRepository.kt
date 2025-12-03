@@ -44,15 +44,20 @@ class NetworkWalletRepository @Inject constructor(
         val session = authRepository.getCurrentSession()
             ?: return Result.failure(IllegalStateException("Sessão expirada"))
 
-        val authResult = authorizeService.authorizeTransfer(amountInCents)
-        if (authResult.isFailure) {
-            return Result.failure(authResult.exceptionOrNull()!!)
-        }
-        if (!authResult.getOrThrow()) {
-            return Result.failure(IllegalStateException("operation not allowed"))
-        }
-
         return runCatching {
+            val summary = walletApi.getSummary(session.user.id)
+            if (amountInCents > summary.balanceInCents) {
+                throw IllegalStateException("Saldo insuficiente")
+            }
+
+            val authResult = authorizeService.authorizeTransfer(amountInCents)
+            if (authResult.isFailure) {
+                throw authResult.exceptionOrNull()!!
+            }
+            if (!authResult.getOrThrow()) {
+                throw IllegalStateException("operation not allowed")
+            }
+
             val response = walletApi.transfer(
                 TransferRequest(
                     userId = session.user.id,

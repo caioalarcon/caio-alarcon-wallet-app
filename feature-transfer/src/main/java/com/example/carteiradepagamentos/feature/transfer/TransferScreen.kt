@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,6 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.carteiradepagamentos.domain.model.Contact
 
 @Composable
@@ -41,8 +45,19 @@ fun TransferScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val successDialogVisible = uiState.successDialogData != null
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     BackHandler(enabled = !successDialogVisible, onBack = onBackToHome)
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                viewModel.reload()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(contactId, uiState.contacts) {
         if (contactId != null && uiState.contacts.isNotEmpty()) {
@@ -60,8 +75,7 @@ fun TransferScreen(
         onAmountChange = viewModel::onAmountChanged,
         onConfirmTransfer = viewModel::onConfirmTransfer,
         onContactSelected = viewModel::onContactSelected,
-        onBack = onBackToHome,
-        onRetry = viewModel::reload
+        onBack = onBackToHome
     )
 
     uiState.successDialogData?.let { successData ->
@@ -69,6 +83,20 @@ fun TransferScreen(
             successData = successData,
             onConfirm = {
                 viewModel.clearSuccessDialog()
+                onBackToHome()
+            }
+        )
+    }
+
+    uiState.errorDialogData?.let { errorData ->
+        TransferErrorDialog(
+            message = errorData.message,
+            onRetry = {
+                viewModel.clearErrorDialog()
+                viewModel.reload()
+            },
+            onCancel = {
+                viewModel.clearErrorDialog()
                 onBackToHome()
             }
         )
@@ -81,8 +109,7 @@ fun TransferContent(
     onAmountChange: (String) -> Unit,
     onConfirmTransfer: () -> Unit,
     onContactSelected: (Contact) -> Unit,
-    onBack: () -> Unit,
-    onRetry: () -> Unit
+    onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -136,20 +163,6 @@ fun TransferContent(
         ) {
             Text("Enviar")
         }
-
-        uiState.errorMessage?.let { msg ->
-            Spacer(Modifier.height(8.dp))
-            Column {
-                Text(msg, color = MaterialTheme.colorScheme.error)
-                Spacer(Modifier.height(4.dp))
-                Button(
-                    onClick = onRetry,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Tentar novamente")
-                }
-            }
-        }
     }
 }
 
@@ -174,6 +187,25 @@ private fun TransferSuccessDialog(
                 Text("Conta: ${successData.contactAccount}")
             }
         }
+    )
+}
+
+@Composable
+private fun TransferErrorDialog(
+    message: String,
+    onRetry: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onRetry,
+        confirmButton = {
+            Button(onClick = onRetry) { Text("Tentar novamente") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("Cancelar") }
+        },
+        title = { Text("Erro na transferência") },
+        text = { Text(message) }
     )
 }
 

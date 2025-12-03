@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import retrofit2.HttpException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,13 +43,13 @@ class TransferViewModel @Inject constructor(
                     selectedContact = contacts.firstOrNull(),
                     amountInput = 0.toBRCurrency(),
                     amountInCents = 0,
-                    errorMessage = null,
-                    successDialogData = null
+                    successDialogData = null,
+                    errorDialogData = null
                 )
             } catch (e: Exception) {
                 _uiState.value = TransferUiState(
                     isLoading = false,
-                    errorMessage = e.toUserFriendlyMessage()
+                    errorDialogData = TransferErrorData(e.resolveFriendlyMessage())
                 )
             }
         }
@@ -59,7 +61,6 @@ class TransferViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             amountInput = amountInCents.toBRCurrency(),
             amountInCents = amountInCents,
-            errorMessage = null,
             successDialogData = null
         )
     }
@@ -67,7 +68,6 @@ class TransferViewModel @Inject constructor(
     fun onContactSelected(contact: Contact) {
         _uiState.value = _uiState.value.copy(
             selectedContact = contact,
-            errorMessage = null,
             successDialogData = null
         )
     }
@@ -77,20 +77,19 @@ class TransferViewModel @Inject constructor(
         val contact = state.selectedContact
 
         if (contact == null) {
-            _uiState.value = state.copy(errorMessage = "Selecione um contato")
+            _uiState.value = state.copy(errorDialogData = TransferErrorData("Selecione um contato"))
             return
         }
 
         val amountInCents = state.amountInCents.takeIf { it > 0 }
         if (amountInCents == null) {
-            _uiState.value = state.copy(errorMessage = "Valor inválido")
+            _uiState.value = state.copy(errorDialogData = TransferErrorData("Valor inválido"))
             return
         }
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                errorMessage = null,
                 successDialogData = null
             )
 
@@ -112,18 +111,11 @@ class TransferViewModel @Inject constructor(
                     )
                 },
                 onFailure = { error ->
-                    val message = when {
-                        error.message?.contains("operation not allowed", ignoreCase = true) == true ->
-                            "Transferência bloqueada por política de segurança (valor R$ 403,00)"
-                        error.message?.contains("Saldo insuficiente", ignoreCase = true) == true ->
-                            "Saldo insuficiente"
-                        else ->
-                            error.message ?: "Erro na transferência"
-                    }
+                    val message = error.resolveFriendlyMessage()
 
                     _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = message,
+                        errorDialogData = TransferErrorData(message),
                         successDialogData = null
                     )
                 }
@@ -133,5 +125,30 @@ class TransferViewModel @Inject constructor(
 
     fun clearSuccessDialog() {
         _uiState.value = _uiState.value.copy(successDialogData = null)
+    }
+
+    fun clearErrorDialog() {
+        _uiState.value = _uiState.value.copy(errorDialogData = null)
+    }
+
+    private fun Throwable.resolveFriendlyMessage(): String {
+        val serverMessage = (this as? HttpException)?.let { http ->
+            runCatching {
+                http.response()?.errorBody()?.string()?.let { body ->
+                    JSONObject(body).optString("message").takeIf { it.isNotBlank() }
+                }
+            }.getOrNull()
+        }
+
+        return when {
+            serverMessage?.contains("Saldo insuficiente", ignoreCase = true) == true -> "Saldo insuficiente"
+            serverMessage?.contains("operation not allowed", ignoreCase = true) == true ->
+                "Transferência bloqueada por política de segurança (valor R$ 403,00)"
+            message?.contains("operation not allowed", ignoreCase = true) == true ->
+                "Transferência bloqueada por política de segurança (valor R$ 403,00)"
+            message?.contains("Saldo insuficiente", ignoreCase = true) == true -> "Saldo insuficiente"
+            serverMessage != null -> serverMessage
+            else -> toUserFriendlyMessage()
+        }
     }
 }
