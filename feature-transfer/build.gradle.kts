@@ -33,6 +33,7 @@ android {
     dependencies {
         implementation(project(":core-domain"))
         implementation(project(":core-data"))
+        implementation("com.squareup.retrofit2:retrofit:2.11.0")
 
         implementation(libs.androidx.core.ktx)
         implementation(libs.androidx.lifecycle.runtime.ktx)
