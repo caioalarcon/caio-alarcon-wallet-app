@@ -20,17 +20,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.carteiradepagamentos.domain.model.Session
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (Session) -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.onAppear()
+    }
+
     LaunchedEffect(uiState.loginSucceeded) {
-        if (uiState.loginSucceeded) {
-            onLoginSuccess()
+        val session = uiState.session
+        if (uiState.loginSucceeded && session != null) {
+            onLoginSuccess(session)
+            viewModel.onLoginHandled()
         }
     }
 

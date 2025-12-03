@@ -30,8 +30,8 @@ android {
     }
 }
 
-dependencies {
-    implementation(project(":core-domain"))
+    dependencies {
+        implementation(project(":core-domain"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -43,11 +43,14 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
+        implementation(libs.androidx.compose.ui.tooling.preview)
+        implementation(libs.androidx.compose.material3)
 
-    kapt(libs.hilt.compiler)
-}
+        kapt(libs.hilt.compiler)
+
+        testImplementation("junit:junit:4.13.2")
+        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    }
 
 kapt {
     correctErrorTypes = true

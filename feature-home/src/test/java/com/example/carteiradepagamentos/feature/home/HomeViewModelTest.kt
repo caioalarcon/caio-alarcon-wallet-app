@@ -7,6 +7,7 @@ import com.example.carteiradepagamentos.domain.model.Session
 import com.example.carteiradepagamentos.domain.model.User
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.WalletRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -40,12 +41,14 @@ class HomeViewModelTest {
             Result.success(accountSummary)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `when session is null user is logged out`() = runTest {
         val authRepository = FakeAuthRepository(session = null)
         val walletRepository = FakeWalletRepository(AccountSummary(0), emptyList())
         val viewModel = HomeViewModel(authRepository, walletRepository)
 
+        viewModel.load()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -53,6 +56,7 @@ class HomeViewModelTest {
         assertEquals("Sessão expirada", state.errorMessage)
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `when session exists home data is populated`() = runTest {
         val session = Session(token = "token", user = User("1", "Usuário", "user@example.com"))
@@ -61,6 +65,7 @@ class HomeViewModelTest {
         val walletRepository = FakeWalletRepository(AccountSummary(12_345), contacts)
         val viewModel = HomeViewModel(authRepository, walletRepository)
 
+        viewModel.load()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -69,4 +74,5 @@ class HomeViewModelTest {
         assertEquals("R$ 123,45", state.balanceText)
         assertEquals(contacts, state.contacts)
     }
+
 }
