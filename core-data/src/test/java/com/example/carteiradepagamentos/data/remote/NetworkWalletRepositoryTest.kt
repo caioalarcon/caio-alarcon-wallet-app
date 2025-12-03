@@ -2,14 +2,15 @@ package com.example.carteiradepagamentos.data.remote
 
 import com.example.carteiradepagamentos.domain.model.AccountSummary
 import com.example.carteiradepagamentos.domain.model.Contact
+import com.example.carteiradepagamentos.domain.model.NetworkConfig
 import com.example.carteiradepagamentos.domain.model.Session
 import com.example.carteiradepagamentos.domain.model.User
+import com.example.carteiradepagamentos.domain.repository.AppPreferencesRepository
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.service.AuthorizeService
 import com.google.gson.JsonParser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -19,14 +20,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import retrofit2.HttpException
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NetworkWalletRepositoryTest {
 
     private lateinit var server: MockWebServer
-    private lateinit var walletApi: WalletApi
+    private lateinit var appPrefs: FakeAppPreferencesRepository
+    private val retrofitFactory = RetrofitFactory()
 
     private class FakeAuthRepository(
         private val session: Session?
@@ -54,16 +54,7 @@ class NetworkWalletRepositoryTest {
     fun setUp() {
         server = MockWebServer()
         server.start()
-
-        val client = OkHttpClient.Builder().build()
-
-        val retrofit = Retrofit.Builder()
-            .baseUrl(server.url("/"))
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-
-        walletApi = retrofit.create(WalletApi::class.java)
+        appPrefs = FakeAppPreferencesRepository(server.url("/").toString())
     }
 
     @After
@@ -81,7 +72,8 @@ class NetworkWalletRepositoryTest {
         authorizeService: AuthorizeService = RecordingAuthorizeService(Result.success(true))
     ): NetworkWalletRepository {
         return NetworkWalletRepository(
-            walletApi = walletApi,
+            retrofitFactory = retrofitFactory,
+            appPreferencesRepository = appPrefs,
             authRepository = authRepository,
             authorizeService = authorizeService
         )
@@ -229,5 +221,18 @@ class NetworkWalletRepositoryTest {
         val transferUrl = transferRequest.requestUrl!!
         assertEquals("/wallet/transfer", transferUrl.encodedPath)
         assertEquals("POST", transferRequest.method)
+    }
+
+    private class FakeAppPreferencesRepository(
+        baseUrl: String
+    ) : AppPreferencesRepository {
+        private val config = NetworkConfig(
+            useRemoteServer = true,
+            baseUrl = baseUrl
+        )
+
+        override suspend fun getNetworkConfig(): NetworkConfig = config
+        override fun observeNetworkConfig() = kotlinx.coroutines.flow.flowOf(config)
+        override suspend fun setNetworkConfig(config: NetworkConfig) = Unit
     }
 }

@@ -7,6 +7,7 @@ Aplicativo Android em Jetpack Compose com arquitetura modular para autenticaçã
 2. Use o Java 11+ (o wrapper já baixa o Gradle 8.13).
 3. Sincronize o projeto no Android Studio Hedgehog ou superior.
 4. Escolha o build variant **debug** e rode no emulador/dispositivo (minSdk 24, targetSdk 36).
+5. Por padrão o app roda **100% offline** usando mocks em memória. Para testar o servidor Node, abra **Configurações → Servidor HTTP mock**, habilite o switch e edite a base URL (vem preenchida com `http://192.168.1.110:3000/` para facilitar).
 
 ## Como rodar os testes
 - **Unit tests**: `./gradlew test --console=plain --no-daemon`
@@ -22,12 +23,12 @@ Aplicativo Android em Jetpack Compose com arquitetura modular para autenticaçã
 ## Decisões arquiteturais
 - **Modularização por camada**: `core-domain` (modelos/contratos puros), `core-data` (repos, integrações e mocks), `app` (configuração DI), `feature-*` (telas de login, home e transferência). 【F:app/build.gradle.kts†L62-L66】【F:app/src/main/java/com/example/carteiradepagamentos/di/AppModule.kt†L28-L74】
 - **Injeção de dependências**: Hilt centraliza binds em `AppModule` (repos, storage, notifier, serviços). 【F:app/src/main/java/com/example/carteiradepagamentos/di/AppModule.kt†L28-L74】
-- **Rede mockada**: `NetworkModule` cria Retrofit apontando para o servidor Node local; o interceptor `FakeAuthorizeInterceptor` está disponível para debug se quiser rodar offline. 【F:app/src/main/java/com/example/carteiradepagamentos/di/NetworkModule.kt†L17-L43】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/FakeAuthorizeInterceptor.kt†L11-L47】
-- **Serviço de autorização**: `NetworkAuthorizeService` envia o valor em centavos para `/authorize`, encapsulando falhas em `Result`. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/NetworkAuthorizeService.kt†L7-L20】
+- **Rede opcional**: `AppPreferencesRepository` guarda (em SharedPreferences) se o servidor HTTP local está habilitado e qual base URL usar; `Configurable*` alterna entre os repositórios de rede e mocks em memória. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/local/SharedPrefsAppPreferencesRepository.kt†L10-L42】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/ConfigurableWalletRepository.kt†L12-L29】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/ConfigurableAuthRemoteDataSource.kt†L12-L24】
+- **Serviço de autorização**: `ConfigurableAuthorizeService` delega para `NetworkAuthorizeService` (Retrofit dinâmico por base URL) ou `LocalAuthorizeService` (sem rede) conforme a preferência salva. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/service/ConfigurableAuthorizeService.kt†L9-L26】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/remote/NetworkAuthorizeService.kt†L9-L26】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/service/LocalAuthorizeService.kt†L5-L13】
 - **Auto-login com token salvo**: `SharedPrefsAuthStorage` persiste `Session`; o `AppViewModel` inicia verificando `authRepository.getCurrentSession()` e decide entre Login e Home sem tela intermediária. 【F:core-data/src/main/java/com/example/carteiradepagamentos/data/local/SharedPrefsAuthRepository.kt†L14-L40】【F:app/src/main/java/com/example/carteiradepagamentos/AppViewModel.kt†L17-L47】
 
 ## Mocks HTTP e contrato `/authorize`
-- O servidor local fica em `simple server` (`npm start`), com endpoints `/auth/login`, `/wallet/summary`, `/wallet/contacts`, `/wallet/transfer` e **`/authorize`**.
+- O servidor local fica em `simple server` (`npm start`), com endpoints `/auth/login`, `/wallet/summary`, `/wallet/contacts`, `/wallet/transfer` e **`/authorize`**. O uso é opcional via Configurações (desligado por padrão).
 - `/authorize` segue o contrato da especificação: `POST /authorize { "value": <centavos> } → { "authorized": true }`; para `40300` retorna `{ "authorized": false, "reason": "operation not allowed" }`. 【F:simple server/index.js†L122-L144】
 - `GET /wallet/contacts` devolve `ownerUserId` de cada conta, garantindo que o app bloqueie payer = payee na camada de apresentação. 【F:simple server/index.js†L67-L88】
 

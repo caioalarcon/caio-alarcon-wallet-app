@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,7 +45,10 @@ fun SettingsScreen(
         uiState = uiState,
         onBack = onBack,
         onThemeSelected = themeViewModel::onThemeSelected,
-        onLogoutClick = { viewModel.onLogoutClicked(onLoggedOut) }
+        onLogoutClick = { viewModel.onLogoutClicked(onLoggedOut) },
+        onNetworkToggle = viewModel::onToggleNetwork,
+        onNetworkBaseUrlChange = viewModel::onNetworkBaseUrlChanged,
+        onSaveNetworkConfig = viewModel::onSaveNetworkConfig
     )
 }
 
@@ -53,7 +58,10 @@ fun SettingsContent(
     uiState: SettingsUiState,
     onBack: () -> Unit,
     onThemeSelected: (ThemeMode) -> Unit,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onNetworkToggle: (Boolean) -> Unit,
+    onNetworkBaseUrlChange: (String) -> Unit,
+    onSaveNetworkConfig: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -122,6 +130,63 @@ fun SettingsContent(
                         text = message,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Servidor HTTP mock",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Use o Node local ou fique 100% offline",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = uiState.networkEnabled,
+                        onCheckedChange = onNetworkToggle
+                    )
+                }
+
+                OutlinedTextField(
+                    value = uiState.networkBaseUrl,
+                    onValueChange = onNetworkBaseUrlChange,
+                    label = { Text("Base URL do servidor (ex.: http://192.168.1.110:3000/)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = if (uiState.networkEnabled) {
+                        "Ligado: usará o servidor local informado."
+                    } else {
+                        "Desligado: usará dados em memória, sem chamadas HTTP."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Button(
+                    onClick = onSaveNetworkConfig,
+                    enabled = !uiState.isSavingNetworkConfig,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (uiState.isSavingNetworkConfig) "Salvando..." else "Salvar preferências de rede"
                     )
                 }
             }

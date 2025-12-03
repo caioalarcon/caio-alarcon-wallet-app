@@ -3,6 +3,8 @@ package com.example.carteiradepagamentos.di
 import com.example.carteiradepagamentos.data.local.SharedPrefsAuthStorage
 import com.example.carteiradepagamentos.data.local.SharedPrefsUserPreferencesRepository
 import com.example.carteiradepagamentos.data.notification.AndroidNotifier
+import com.example.carteiradepagamentos.data.local.SharedPrefsAppPreferencesRepository
+import com.example.carteiradepagamentos.domain.repository.AppPreferencesRepository
 import com.example.carteiradepagamentos.domain.repository.UserPreferencesRepository
 import com.example.carteiradepagamentos.domain.service.Notifier
 import com.example.carteiradepagamentos.domain.storage.AuthStorage
@@ -39,4 +41,10 @@ object AppProvidesModule {
     fun provideUserPreferencesRepository(
         impl: SharedPrefsUserPreferencesRepository
     ): UserPreferencesRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideAppPreferencesRepository(
+        impl: SharedPrefsAppPreferencesRepository
+    ): AppPreferencesRepository = impl
 }
