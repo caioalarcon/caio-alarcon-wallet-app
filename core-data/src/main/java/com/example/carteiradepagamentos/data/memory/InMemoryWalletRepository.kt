@@ -23,41 +23,41 @@ class InMemoryWalletRepository @Inject constructor(
         var balanceInCents: Long
     )
 
-    private val accounts = mutableListOf(
-        AccountState(
+    private val accounts = mutableMapOf(
+        "acc1" to AccountState(
             id = "acc1",
             ownerUserId = "1",
             ownerName = "Usuário Exemplo",
             accountNumber = "0001-1",
             balanceInCents = 100_000
         ),
-        AccountState(
+        "acc2" to AccountState(
             id = "acc2",
             ownerUserId = "2",
             ownerName = "Alice",
             accountNumber = "0001-2",
             balanceInCents = 50_000
         ),
-        AccountState(
+        "acc3" to AccountState(
             id = "acc3",
             ownerUserId = "3",
             ownerName = "Bob",
             accountNumber = "0001-3",
             balanceInCents = 75_000
         ),
-        AccountState(
+        "acc4" to AccountState(
             id = "acc4",
             ownerUserId = "4",
             ownerName = "Carol",
             accountNumber = "0001-4",
-            balanceInCents = 200_000
+            balanceInCents = 20_000
         ),
     )
 
     private suspend fun currentUserAccount(): AccountState {
         val session = authRepository.getCurrentSession()
             ?: error("Sessão inexistente ao consultar carteira")
-        return accounts.first { it.ownerUserId == session.user.id }
+        return accounts.values.first { it.ownerUserId == session.user.id }
     }
 
     override suspend fun getAccountSummary(): AccountSummary {
@@ -69,7 +69,7 @@ class InMemoryWalletRepository @Inject constructor(
     override suspend fun getContacts(): List<Contact> {
         delay(300)
         val currentUserAccount = currentUserAccount()
-        return accounts
+        return accounts.values
             .filter { it.ownerUserId != currentUserAccount.ownerUserId }
             .map { account ->
                 Contact(
@@ -91,7 +91,7 @@ class InMemoryWalletRepository @Inject constructor(
         }
 
         val payerAccount = currentUserAccount()
-        val payeeAccount = accounts.firstOrNull { it.id == toContactId }
+        val payeeAccount = accounts[toContactId]
             ?: return Result.failure(IllegalArgumentException("Contato inválido"))
 
         if (payeeAccount.ownerUserId == payerAccount.ownerUserId) {
