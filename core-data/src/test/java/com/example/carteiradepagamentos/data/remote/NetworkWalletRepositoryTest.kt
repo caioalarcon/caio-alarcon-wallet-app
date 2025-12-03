@@ -6,12 +6,12 @@ import com.example.carteiradepagamentos.domain.model.Session
 import com.example.carteiradepagamentos.domain.model.User
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.service.AuthorizeService
+import com.google.gson.JsonParser
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -104,7 +104,7 @@ class NetworkWalletRepositoryTest {
         val request = server.takeRequest()
         val url = request.requestUrl!!
         assertEquals("GET", request.method)
-        assertEquals("/wallet/summary", url.encodedPath())
+        assertEquals("/wallet/summary", url.encodedPath)
         assertEquals("1", url.queryParameter("userId"))
     }
 
@@ -135,7 +135,7 @@ class NetworkWalletRepositoryTest {
         val request = server.takeRequest()
         val url = request.requestUrl!!
         assertEquals("GET", request.method)
-        assertEquals("/wallet/contacts", url.encodedPath())
+        assertEquals("/wallet/contacts", url.encodedPath)
         assertEquals("1", url.queryParameter("userId"))
     }
 
@@ -144,6 +144,11 @@ class NetworkWalletRepositoryTest {
         val authorizeService = RecordingAuthorizeService(Result.success(true))
         val repository = buildRepository(authorizeService = authorizeService)
 
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody("""{"balanceInCents": 100_000}""".replace("_", ""))
+        )
         server.enqueue(
             MockResponse()
                 .setResponseCode(200)
@@ -158,25 +163,21 @@ class NetworkWalletRepositoryTest {
         // valor enviado para autorização
         assertEquals(2_500L, authorizeService.lastRequestedAmount)
 
-        // pode haver múltiplas requisições (ex. futuras mudanças),
-        // garantimos que ao menos uma delas é o POST /wallet/transfer correto
-        var transferRequestFound: Boolean = false
-        repeat(server.requestCount) {
-            val request = server.takeRequest()
-            val url = request.requestUrl!!
+        val summaryRequest = server.takeRequest()
+        val summaryUrl = summaryRequest.requestUrl!!
+        assertEquals("GET", summaryRequest.method)
+        assertEquals("/wallet/summary", summaryUrl.encodedPath)
+        assertEquals("1", summaryUrl.queryParameter("userId"))
 
-            if (url.encodedPath() == "/wallet/transfer") {
-                transferRequestFound = true
-                assertEquals("POST", request.method)
+        val transferRequest = server.takeRequest()
+        val transferUrl = transferRequest.requestUrl!!
+        assertEquals("POST", transferRequest.method)
+        assertEquals("/wallet/transfer", transferUrl.encodedPath)
 
-                val bodyJson = JSONObject(request.body.readUtf8())
-                assertEquals("1", bodyJson.getString("userId"))
-                assertEquals("acc2", bodyJson.getString("toContactId"))
-                assertEquals(2_500L, bodyJson.getLong("amountInCents"))
-            }
-        }
-
-        assertTrue("Expected at least one POST /wallet/transfer call", transferRequestFound)
+        val bodyJson = JsonParser().parse(transferRequest.body.readUtf8()).asJsonObject
+        assertEquals("1", bodyJson.get("userId").asString)
+        assertEquals("acc2", bodyJson.get("toContactId").asString)
+        assertEquals(2_500L, bodyJson.get("amountInCents").asLong)
     }
 
     @Test
@@ -201,6 +202,11 @@ class NetworkWalletRepositoryTest {
 
         server.enqueue(
             MockResponse()
+                .setResponseCode(200)
+                .setBody("""{"balanceInCents": 300_000}""".replace("_", ""))
+        )
+        server.enqueue(
+            MockResponse()
                 .setResponseCode(400)
                 .setBody("""{"message":"Saldo insuficiente"}""")
         )
@@ -213,9 +219,14 @@ class NetworkWalletRepositoryTest {
         assertTrue(error is HttpException)
         assertEquals(400, (error as HttpException).code())
 
-        val request = server.takeRequest()
-        val url = request.requestUrl!!
-        assertEquals("/wallet/transfer", url.encodedPath())
-        assertEquals("POST", request.method)
+        val summaryRequest = server.takeRequest()
+        val summaryUrl = summaryRequest.requestUrl!!
+        assertEquals("/wallet/summary", summaryUrl.encodedPath)
+        assertEquals("GET", summaryRequest.method)
+
+        val transferRequest = server.takeRequest()
+        val transferUrl = transferRequest.requestUrl!!
+        assertEquals("/wallet/transfer", transferUrl.encodedPath)
+        assertEquals("POST", transferRequest.method)
     }
 }
