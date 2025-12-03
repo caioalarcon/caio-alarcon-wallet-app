@@ -1,0 +1,284 @@
+openapi: 3.0.3
+info:
+  title: Wallet API (Simple Server)
+  version: 1.0.0
+  description: >
+    API mockada em Node/Express utilizada pelo app de carteira para desenvolvimento
+    local. Dados e saldos são armazenados apenas em memória e reiniciam a cada boot.
+servers:
+  - url: http://localhost:3000
+    description: Servidor local padrão
+tags:
+  - name: auth
+    description: Autenticação e emissão de token fake
+  - name: wallet
+    description: Operações de carteira (saldo, contatos, transferência)
+  - name: authorization
+    description: Autorização de valor
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Autentica um usuário mock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: user@example.com
+              password: "123456"
+      responses:
+        '200':
+          description: Login bem-sucedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                token: fake-token-1
+                user:
+                  id: "1"
+                  name: Usuário Exemplo
+                  email: user@example.com
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Credenciais inválidas
+  /wallet/summary:
+    get:
+      tags: [wallet]
+      summary: Retorna o saldo do usuário em centavos
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: ID do usuário (ownerUserId) que possui a conta
+      responses:
+        '200':
+          description: Saldo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletBalanceResponse'
+              example:
+                balanceInCents: 100000
+        '404':
+          description: Conta não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Conta não encontrada
+  /wallet/contacts:
+    get:
+      tags: [wallet]
+      summary: Lista contatos elegíveis para transferência
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: ID do usuário solicitante (será excluído da lista)
+      responses:
+        '200':
+          description: Lista de contatos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contact'
+              example:
+                - id: acc2
+                  name: Alice
+                  accountNumber: 0001-2
+                - id: acc3
+                  name: Bob
+                  accountNumber: 0001-3
+  /wallet/transfer:
+    post:
+      tags: [wallet]
+      summary: Transfere saldo entre contas mock
+      description: >
+        Valida conta de origem/destino, valor positivo e saldo suficiente. Rejeita
+        payer igual ao payee. Atualiza saldos em memória.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+            example:
+              userId: "1"
+              toContactId: acc2
+              amountInCents: 15000
+      responses:
+        '200':
+          description: Transferência concluída
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+              example:
+                balanceInCents: 85000
+        '400':
+          description: Rejeição de negócio (contato inválido, conta não encontrada, valor inválido, saldo insuficiente, payer=payee)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                contatoInvalido:
+                  summary: Contato inválido
+                  value:
+                    message: Contato inválido
+                contaNaoEncontrada:
+                  summary: Conta não encontrada
+                  value:
+                    message: Conta não encontrada
+                payerIgualPayee:
+                  summary: Payer igual ao payee
+                  value:
+                    message: Payer e payee não podem ser iguais
+                valorInvalido:
+                  summary: Valor inválido ou zero
+                  value:
+                    message: Valor inválido
+                saldoInsuficiente:
+                  summary: Saldo insuficiente
+                  value:
+                    message: Saldo insuficiente
+  /authorize:
+    post:
+      tags: [authorization]
+      summary: Autoriza um valor
+      description: Retorna `authorized=false` quando `value` é igual a `40300` (R$ 403,00); demais valores são autorizados.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizeRequest'
+            example:
+              value: 20000
+      responses:
+        '200':
+          description: Resultado da autorização
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizeResponse'
+              examples:
+                autorizado:
+                  summary: Valor autorizado
+                  value:
+                    authorized: true
+                negado:
+                  summary: Valor negado (40300)
+                  value:
+                    authorized: false
+                    reason: operation not allowed
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+    WalletBalanceResponse:
+      type: object
+      required: [balanceInCents]
+      properties:
+        balanceInCents:
+          type: integer
+          format: int32
+          minimum: 0
+    Contact:
+      type: object
+      required: [id, name, accountNumber]
+      properties:
+        id:
+          type: string
+          description: ID da conta de destino
+        name:
+          type: string
+        accountNumber:
+          type: string
+    TransferRequest:
+      type: object
+      required: [userId, toContactId, amountInCents]
+      properties:
+        userId:
+          type: string
+          description: ID do usuário pagador (ownerUserId)
+        toContactId:
+          type: string
+          description: ID da conta de destino
+        amountInCents:
+          type: integer
+          format: int32
+          minimum: 1
+    TransferResponse:
+      type: object
+      required: [balanceInCents]
+      properties:
+        balanceInCents:
+          type: integer
+          format: int32
+          minimum: 0
+    AuthorizeRequest:
+      type: object
+      required: [value]
+      properties:
+        value:
+          type: integer
+          format: int32
+          description: Valor em centavos
+    AuthorizeResponse:
+      type: object
+      required: [authorized]
+      properties:
+        authorized:
+          type: boolean
+        reason:
+          type: string
+          description: Presente quando a operação não é autorizada
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
