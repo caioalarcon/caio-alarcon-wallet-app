@@ -183,12 +183,12 @@ private fun TransferSuccessDialog(
         },
         title = { Text("Transferência enviada") },
         text = {
-            Column {
-                Text("Valor: ${successData.amountText}")
-                Spacer(Modifier.height(4.dp))
-                Text("Destinatário: ${successData.contactName}")
-                Text("Conta: ${successData.contactAccount}")
-            }
+            TransferDialogContent(
+                message = null,
+                amountText = successData.amountText,
+                contactName = successData.contactName,
+                contactAccount = successData.contactAccount
+            )
         }
     )
 }
@@ -212,22 +212,41 @@ private fun TransferErrorDialog(
         },
         title = { Text("Erro na transferência") },
         text = {
-            Column {
-                Text(message)
-                amountText?.let {
-                    Spacer(Modifier.height(4.dp))
-                    Text("Valor: $it")
-                }
-                if (!contactName.isNullOrBlank()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text("Destinatário: $contactName")
-                }
-                if (!contactAccount.isNullOrBlank()) {
-                    Text("Conta: $contactAccount")
-                }
-            }
+            TransferDialogContent(
+                message = message,
+                amountText = amountText,
+                contactName = contactName,
+                contactAccount = contactAccount
+            )
         }
     )
+}
+
+@Composable
+private fun TransferDialogContent(
+    message: String?,
+    amountText: String?,
+    contactName: String?,
+    contactAccount: String?,
+) {
+    Column {
+        message?.let {
+            Text(it)
+            if (amountText != null || !contactName.isNullOrBlank() || !contactAccount.isNullOrBlank()) {
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+        amountText?.let {
+            Text("Valor: $it")
+        }
+        if (!contactName.isNullOrBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Text("Destinatário: $contactName")
+        }
+        if (!contactAccount.isNullOrBlank()) {
+            Text("Conta: $contactAccount")
+        }
+    }
 }
 
 @Composable
