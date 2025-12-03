@@ -13,13 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -190,24 +191,35 @@ private fun TransferOutcomeDialog(
     onDismiss: (() -> Unit)? = null,
 ) {
     val handleDismiss = onDismiss ?: onConfirm
-    AlertDialog(
-        onDismissRequest = handleDismiss,
-        confirmButton = {
-            Button(onClick = onConfirm) { Text(confirmLabel) }
-        },
-        dismissButton = dismissLabel?.let {
-            { TextButton(onClick = { handleDismiss() }) { Text(it) } }
-        },
-        title = { Text(title) },
-        text = {
-            TransferDialogContent(
-                message = message,
-                amountText = amountText,
-                contactName = contactName,
-                contactAccount = contactAccount
-            )
+    Dialog(onDismissRequest = handleDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(12.dp))
+                TransferDialogContent(
+                    message = message,
+                    amountText = amountText,
+                    contactName = contactName,
+                    contactAccount = contactAccount
+                )
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    dismissLabel?.let {
+                        TextButton(onClick = handleDismiss) { Text(it) }
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Button(onClick = onConfirm) { Text(confirmLabel) }
+                }
+            }
         }
-    )
+    }
 }
 
 @Composable
