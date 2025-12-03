@@ -50,7 +50,7 @@ class InMemoryWalletRepository @Inject constructor(
             ownerUserId = "4",
             ownerName = "Carol",
             accountNumber = "0001-4",
-            balanceInCents = 200_000
+            balanceInCents = 25_000
         ),
     )
 
@@ -98,14 +98,14 @@ class InMemoryWalletRepository @Inject constructor(
             return Result.failure(IllegalStateException("Payer e payee não podem ser iguais"))
         }
 
+        if (amountInCents > payerAccount.balanceInCents) {
+            return Result.failure(IllegalStateException("Saldo insuficiente"))
+        }
+
         val authorization = authorizeService.authorizeTransfer(amountInCents)
         val isAllowed = authorization.getOrElse { return Result.failure(it) }
         if (!isAllowed) {
             return Result.failure(IllegalStateException("operation not allowed"))
-        }
-
-        if (amountInCents > payerAccount.balanceInCents) {
-            return Result.failure(IllegalStateException("Saldo insuficiente"))
         }
 
         payerAccount.balanceInCents -= amountInCents

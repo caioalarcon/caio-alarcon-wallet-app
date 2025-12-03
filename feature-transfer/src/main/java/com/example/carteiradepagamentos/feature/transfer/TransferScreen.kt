@@ -202,7 +202,7 @@ private fun TransferErrorDialog(
             Button(onClick = onRetry) { Text("Tentar novamente") }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text("Cancelar") }
+            TextButton(onClick = onCancel) { Text("Voltar") }
         },
         title = { Text("Erro na transferência") },
         text = { Text(message) }

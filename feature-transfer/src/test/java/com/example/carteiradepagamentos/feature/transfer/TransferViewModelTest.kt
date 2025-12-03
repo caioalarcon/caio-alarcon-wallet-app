@@ -62,7 +62,7 @@ class TransferViewModelTest {
         viewModel.onConfirmTransfer()
 
         val state = viewModel.uiState.value
-        assertEquals("Selecione um contato", state.errorMessage)
+        assertEquals("Selecione um contato", state.errorDialogData?.message)
     }
 
     @Test
@@ -77,7 +77,7 @@ class TransferViewModelTest {
         viewModel.onConfirmTransfer()
 
         val state = viewModel.uiState.value
-        assertEquals("Valor inválido", state.errorMessage)
+        assertEquals("Valor inválido", state.errorDialogData?.message)
     }
 
     @Test
@@ -115,7 +115,7 @@ class TransferViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertEquals("Transferência bloqueada por política de segurança (valor R$ 403,00)", state.errorMessage)
+        assertEquals("Transferência bloqueada por política de segurança (valor R$ 403,00)", state.errorDialogData?.message)
         assertNull(notifier.lastNotification)
     }
 
@@ -133,7 +133,7 @@ class TransferViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertEquals("Saldo insuficiente", state.errorMessage)
+        assertEquals("Saldo insuficiente", state.errorDialogData?.message)
         assertNull(notifier.lastNotification)
     }
 }
