@@ -32,21 +32,20 @@ android {
 
     dependencies {
         implementation(project(":core-domain"))
+        implementation(project(":core-data"))
 
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.hilt.android)
-    implementation(libs.hilt.navigation.compose)
-    implementation(libs.kotlinx.coroutines.android)
+        implementation(libs.androidx.core.ktx)
+        implementation(libs.androidx.lifecycle.runtime.ktx)
+        implementation(libs.androidx.lifecycle.viewmodel.ktx)
+        implementation(libs.hilt.android)
+        implementation(libs.hilt.navigation.compose)
+        implementation(libs.kotlinx.coroutines.android)
 
         implementation(platform(libs.androidx.compose.bom))
         implementation(libs.androidx.compose.ui)
         implementation(libs.androidx.compose.ui.graphics)
         implementation(libs.androidx.compose.ui.tooling.preview)
         implementation(libs.androidx.compose.material3)
-        implementation(project(":core-domain"))
-        implementation(project(":core-domain"))
 
         kapt(libs.hilt.compiler)
 
