@@ -47,6 +47,7 @@ android {
 }
 
 dependencies {
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
@@ -65,7 +66,6 @@ dependencies {
     implementation(project(":feature-home"))
     implementation(project(":feature-transfer"))
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
     kapt(libs.hilt.compiler)
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.12")

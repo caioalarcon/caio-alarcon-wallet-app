@@ -8,7 +8,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
+import retrofit2.converter.gson.GsonConverterFactory
+
 import javax.inject.Singleton
 
 @Module
@@ -19,9 +20,9 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(): Retrofit =
         Retrofit.Builder()
-            // No emulador Android, acesse o Node em 10.0.2.2
-            .baseUrl("http://10.0.2.2:3000/")
-            .addConverterFactory(MoshiConverterFactory.create())
+            // No emulador Android, acesse o Node em 192.168.1.110
+            .baseUrl("http://192.168.1.110:3000/")
+            .addConverterFactory(GsonConverterFactory.create())
             .build()
 
     @Provides

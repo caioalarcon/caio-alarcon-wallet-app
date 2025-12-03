@@ -105,6 +105,6 @@ app.post("/authorize", (req, res) => {
   res.json({ authorized });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0" , () => {
   console.log(`Wallet API rodando em http://localhost:${PORT}`);
 });
