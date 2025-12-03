@@ -71,6 +71,7 @@ app.get("/wallet/contacts", (req, res) => {
   res.json(contacts);
 });
 
+// Somente validações de valor/payer/payee/saldo. Autorização é endpoint separado.
 app.post("/wallet/transfer", (req, res) => {
   const { userId, toContactId, amountInCents } = req.body || {};
 
@@ -97,23 +98,22 @@ app.post("/wallet/transfer", (req, res) => {
     return res.status(400).json({ message: "Saldo insuficiente" });
   }
 
-  const authorized = amountInCents !== 40_300;
-  if (!authorized) {
-    return res.status(400).json({ message: "operation not allowed" });
-  }
-
   payer.balanceInCents -= amountInCents;
   payee.balanceInCents += amountInCents;
 
   return res.json({ balanceInCents: payer.balanceInCents });
 });
 
+// Autorização padronizada: 40300 (R$ 403,00) => false + reason
 app.post("/authorize", (req, res) => {
   const { value } = req.body || {};
   const authorized = value !== 40_300;
-  res.json({ authorized });
+  if (!authorized) {
+    return res.json({ authorized: false, reason: "operation not allowed" });
+  }
+  return res.json({ authorized: true });
 });
 
-app.listen(PORT, "0.0.0.0" , () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Wallet API rodando em http://localhost:${PORT}`);
 });
