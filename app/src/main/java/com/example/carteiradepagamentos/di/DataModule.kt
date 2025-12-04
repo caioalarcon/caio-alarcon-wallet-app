@@ -16,29 +16,29 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class DataModule {
+interface DataModule {
 
     @Binds
     @Singleton
-    abstract fun bindAuthRemoteDataSource(
+    fun bindAuthRemoteDataSource(
         impl: ConfigurableAuthRemoteDataSource
     ): AuthRemoteDataSource
 
     @Binds
     @Singleton
-    abstract fun bindAuthRepository(
+    fun bindAuthRepository(
         impl: SharedPrefsAuthRepository
     ): AuthRepository
 
     @Binds
     @Singleton
-    abstract fun bindWalletRepository(
+    fun bindWalletRepository(
         impl: ConfigurableWalletRepository
     ): WalletRepository
 
     @Binds
     @Singleton
-    abstract fun bindAuthorizeService(
+    fun bindAuthorizeService(
         impl: ConfigurableAuthorizeService
     ): AuthorizeService
 }

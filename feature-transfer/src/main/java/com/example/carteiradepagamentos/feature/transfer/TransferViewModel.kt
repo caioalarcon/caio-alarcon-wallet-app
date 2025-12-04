@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import retrofit2.HttpException
 import javax.inject.Inject
 
@@ -122,7 +121,7 @@ class TransferViewModel @Inject constructor(
         if (contact.ownerUserId == currentUserId) {
             _uiState.value = state.copy(
                 errorDialogData = TransferErrorData(
-                    message = "Você não pode transferir para você mesmo",
+                    message = ERROR_SELF_TRANSFER,
                     contactName = contact.name,
                     contactAccount = contact.accountNumber
                 )
@@ -134,7 +133,7 @@ class TransferViewModel @Inject constructor(
         if (amountInCents > state.balanceInCents) {
             _uiState.value = state.copy(
                 errorDialogData = TransferErrorData(
-                    message = "Saldo insuficiente",
+                    message = ERROR_INSUFFICIENT_BALANCE,
                     amountText = amountInCents.toBRCurrency(),
                     contactName = contact.name,
                     contactAccount = contact.accountNumber
@@ -194,26 +193,21 @@ class TransferViewModel @Inject constructor(
     }
 
     private fun Throwable.resolveFriendlyMessage(): String {
-        val serverMessage = (this as? HttpException)?.let { http ->
-            runCatching {
-                http.response()
-                    ?.errorBody()
-                    ?.string()
-                    ?.let { body ->
-                        JSONObject(body)
-                            .optString("message")
-                            .takeIf { it.isNotBlank() }
-                    }
-            }.getOrNull()
-        }
+        val serverMessage = (this as? HttpException)
+            ?.response()
+            ?.errorBody()
+            ?.string()
+            ?.substringAfter("\"message\":\"", missingDelimiterValue = "")
+            ?.substringBefore("\"", missingDelimiterValue = "")
+            ?.takeIf { it.isNotBlank() }
 
         return when {
-            serverMessage?.contains("Saldo insuficiente", ignoreCase = true) == true ->
-                "Saldo insuficiente"
+            serverMessage?.contains(ERROR_INSUFFICIENT_BALANCE, ignoreCase = true) == true ->
+                ERROR_INSUFFICIENT_BALANCE
 
             serverMessage?.contains("payer e payee", ignoreCase = true) == true ||
                 serverMessage?.contains("payer equals payee", ignoreCase = true) == true ->
-                "Você não pode transferir para você mesmo"
+                ERROR_SELF_TRANSFER
 
             serverMessage?.contains("operation not allowed", ignoreCase = true) == true ->
                 "Transferência bloqueada por política de segurança (valor R$ 403,00)"
@@ -226,14 +220,19 @@ class TransferViewModel @Inject constructor(
 
             message?.contains("payer e payee", ignoreCase = true) == true ||
                 message?.contains("payer equals payee", ignoreCase = true) == true ->
-                "Você não pode transferir para você mesmo"
+                ERROR_SELF_TRANSFER
 
-            message?.contains("Saldo insuficiente", ignoreCase = true) == true ->
-                "Saldo insuficiente"
+            message?.contains(ERROR_INSUFFICIENT_BALANCE, ignoreCase = true) == true ->
+                ERROR_INSUFFICIENT_BALANCE
 
             serverMessage != null -> serverMessage
 
             else -> toUserFriendlyMessage()
         }
+    }
+
+    private companion object {
+        const val ERROR_SELF_TRANSFER = "Você não pode transferir para você mesmo"
+        const val ERROR_INSUFFICIENT_BALANCE = "Saldo insuficiente"
     }
 }

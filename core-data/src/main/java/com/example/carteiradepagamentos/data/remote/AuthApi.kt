@@ -19,7 +19,7 @@ data class UserDto(
     val email: String
 )
 
-interface AuthApi {
+fun interface AuthApi {
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 }

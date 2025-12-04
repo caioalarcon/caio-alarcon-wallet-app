@@ -18,7 +18,7 @@ Aplicativo Android em Jetpack Compose com arquitetura modular para autenticaçã
 - **Android Gradle Plugin**: 8.13.1. 【F:gradle/libs.versions.toml†L1-L14】
 - **Kotlin**: 2.0.21. 【F:gradle/libs.versions.toml†L1-L14】
 - **SDK**: compile/target 36, minSdk 24. 【F:app/build.gradle.kts†L10-L33】
-- **Principais libs**: Compose BOM 2024.09.00, Material3, Activity Compose, Lifecycle, Coroutines, Hilt, Retrofit 2.11.0, OkHttp 4.12.0, Moshi 1.15.1. 【F:app/build.gradle.kts†L49-L77】【F:core-data/build.gradle.kts†L47-L62】
+- **Principais libs**: Compose BOM 2024.09.00, Material3, Activity Compose, Lifecycle, Coroutines, Hilt, Retrofit 2.11.0 + Moshi (converter-moshi 2.11.0, Moshi 1.15.1), OkHttp 4.12.0. 【F:app/build.gradle.kts†L49-L79】【F:core-data/build.gradle.kts†L47-L63】
 
 ## Decisões arquiteturais
 - **Modularização por camada**: `core-domain` (modelos/contratos puros), `core-data` (repos, integrações e mocks), `app` (configuração DI), `feature-*` (telas de login, home e transferência). 【F:app/build.gradle.kts†L62-L66】【F:app/src/main/java/com/example/carteiradepagamentos/di/AppModule.kt†L28-L74】
@@ -48,3 +48,7 @@ Aplicativo Android em Jetpack Compose com arquitetura modular para autenticaçã
 - Erro por saldo insuficiente: ![Erro saldo](docs/screen-transfer-insufficient.png)
 - Erro por política (R$ 403,00): ![Erro política](docs/screen-transfer-policy403.png)
 - Erro ao transferir para si mesmo: ![Erro auto-contato](docs/screen-transfer-self.png)
+
+## Documentação complementar
+- Testes exploratórios: `docs/exploratory-tests.md`
+- Servidor mock `/authorize`: `docs/mock-authorize-guide.md`

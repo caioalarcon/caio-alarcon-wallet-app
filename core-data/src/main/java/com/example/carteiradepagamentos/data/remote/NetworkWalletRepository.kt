@@ -19,7 +19,7 @@ class NetworkWalletRepository @Inject constructor(
 
     override suspend fun getAccountSummary(): AccountSummary {
         val session = authRepository.getCurrentSession()
-            ?: throw IllegalStateException("Sessão expirada")
+            ?: throw IllegalStateException(SESSION_EXPIRED)
 
         val api = walletApi()
         val response = api.getSummary(session.user.id)
@@ -28,7 +28,7 @@ class NetworkWalletRepository @Inject constructor(
 
     override suspend fun getContacts(): List<Contact> {
         val session = authRepository.getCurrentSession()
-            ?: throw IllegalStateException("Sessão expirada")
+            ?: throw IllegalStateException(SESSION_EXPIRED)
 
         val response = walletApi().getContacts(session.user.id)
         val contacts = response.map {
@@ -53,21 +53,15 @@ class NetworkWalletRepository @Inject constructor(
         amountInCents: Long
     ): Result<AccountSummary> {
         val session = authRepository.getCurrentSession()
-            ?: return Result.failure(IllegalStateException("Sessão expirada"))
+            ?: return Result.failure(IllegalStateException(SESSION_EXPIRED))
 
         return runCatching {
             val summary = walletApi().getSummary(session.user.id)
-            if (amountInCents > summary.balanceInCents) {
-                throw IllegalStateException("Saldo insuficiente")
-            }
+            check(amountInCents <= summary.balanceInCents) { ERROR_INSUFFICIENT_BALANCE }
 
             val authResult = authorizeService.authorizeTransfer(amountInCents)
-            if (authResult.isFailure) {
-                throw authResult.exceptionOrNull()!!
-            }
-            if (!authResult.getOrThrow()) {
-                throw IllegalStateException("operation not allowed")
-            }
+            val authorized = authResult.getOrElse { throw it }
+            check(authorized) { ERROR_OPERATION_NOT_ALLOWED }
 
             val response = walletApi().transfer(
                 TransferRequest(
@@ -83,5 +77,11 @@ class NetworkWalletRepository @Inject constructor(
     private suspend fun walletApi(): WalletApi {
         val config = appPreferencesRepository.getNetworkConfig()
         return retrofitFactory.create(config.baseUrl).create(WalletApi::class.java)
+    }
+
+    private companion object {
+        const val SESSION_EXPIRED = "Sessão expirada"
+        const val ERROR_INSUFFICIENT_BALANCE = "Saldo insuficiente"
+        const val ERROR_OPERATION_NOT_ALLOWED = "operation not allowed"
     }
 }

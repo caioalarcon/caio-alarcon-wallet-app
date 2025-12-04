@@ -12,7 +12,7 @@ data class AuthorizeResponse(
     val reason: String? = null
 )
 
-interface AuthorizeApi {
+fun interface AuthorizeApi {
     @POST("authorize")
     suspend fun authorize(
         @Body request: AuthorizeRequest

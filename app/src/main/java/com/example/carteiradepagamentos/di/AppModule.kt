@@ -1,9 +1,9 @@
 package com.example.carteiradepagamentos.di
 
+import com.example.carteiradepagamentos.data.local.SharedPrefsAppPreferencesRepository
 import com.example.carteiradepagamentos.data.local.SharedPrefsAuthStorage
 import com.example.carteiradepagamentos.data.local.SharedPrefsUserPreferencesRepository
 import com.example.carteiradepagamentos.data.notification.AndroidNotifier
-import com.example.carteiradepagamentos.data.local.SharedPrefsAppPreferencesRepository
 import com.example.carteiradepagamentos.domain.repository.AppPreferencesRepository
 import com.example.carteiradepagamentos.domain.repository.UserPreferencesRepository
 import com.example.carteiradepagamentos.domain.service.Notifier
@@ -17,17 +17,17 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class AppModule {
+interface AppModule {
 
     @Binds
     @Singleton
-    abstract fun bindNotifier(
+    fun bindNotifier(
         impl: AndroidNotifier
     ): Notifier
 
     @Binds
     @Singleton
-    abstract fun bindAuthStorage(
+    fun bindAuthStorage(
         impl: SharedPrefsAuthStorage
     ): AuthStorage
 }

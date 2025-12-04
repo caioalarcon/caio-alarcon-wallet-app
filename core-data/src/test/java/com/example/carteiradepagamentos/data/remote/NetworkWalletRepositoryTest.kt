@@ -8,7 +8,8 @@ import com.example.carteiradepagamentos.domain.model.User
 import com.example.carteiradepagamentos.domain.repository.AppPreferencesRepository
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.service.AuthorizeService
-import com.google.gson.JsonParser
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
@@ -174,10 +175,13 @@ class NetworkWalletRepositoryTest {
         assertEquals("POST", transferRequest.method)
         assertEquals("/wallet/transfer", transferUrl.encodedPath)
 
-        val bodyJson = JsonParser().parse(transferRequest.body.readUtf8()).asJsonObject
-        assertEquals("1", bodyJson.get("userId").asString)
-        assertEquals("acc2", bodyJson.get("toContactId").asString)
-        assertEquals(2_500L, bodyJson.get("amountInCents").asLong)
+        val moshi = Moshi.Builder().build()
+        val mapType = Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
+        val adapter = moshi.adapter<Map<String, Any>>(mapType)
+        val bodyJson = requireNotNull(adapter.fromJson(transferRequest.body.readUtf8()))
+        assertEquals("1", bodyJson["userId"])
+        assertEquals("acc2", bodyJson["toContactId"])
+        assertEquals(2_500.0, bodyJson["amountInCents"])
     }
 
     @Test

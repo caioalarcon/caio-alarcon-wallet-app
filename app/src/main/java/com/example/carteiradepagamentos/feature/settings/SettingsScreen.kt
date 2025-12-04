@@ -38,11 +38,7 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val themeMode by themeViewModel.themeMode.collectAsState()
 
-    BackHandler(onBack = onBack)
-
-    SettingsContent(
-        themeMode = themeMode,
-        uiState = uiState,
+    val actions = SettingsActions(
         onBack = onBack,
         onThemeSelected = themeViewModel::onThemeSelected,
         onLogoutClick = { viewModel.onLogoutClicked(onLoggedOut) },
@@ -50,18 +46,21 @@ fun SettingsScreen(
         onNetworkBaseUrlChange = viewModel::onNetworkBaseUrlChanged,
         onSaveNetworkConfig = viewModel::onSaveNetworkConfig
     )
+
+    BackHandler(onBack = actions.onBack)
+
+    SettingsContent(
+        themeMode = themeMode,
+        uiState = uiState,
+        actions = actions
+    )
 }
 
 @Composable
 fun SettingsContent(
     themeMode: ThemeMode,
     uiState: SettingsUiState,
-    onBack: () -> Unit,
-    onThemeSelected: (ThemeMode) -> Unit,
-    onLogoutClick: () -> Unit,
-    onNetworkToggle: (Boolean) -> Unit,
-    onNetworkBaseUrlChange: (String) -> Unit,
-    onSaveNetworkConfig: () -> Unit
+    actions: SettingsActions
 ) {
     Column(
         modifier = Modifier
@@ -83,11 +82,11 @@ fun SettingsContent(
                     text = "Ajustes rápidos e novas opções no futuro",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            TextButton(onClick = onBack) {
-                Text(text = "Voltar")
-            }
+                    )
+                }
+                TextButton(onClick = actions.onBack) {
+                    Text(text = "Voltar")
+                }
         }
 
         Card(
@@ -108,19 +107,19 @@ fun SettingsContent(
                             title = "Claro",
                             description = "Sempre usar o tema claro",
                             selected = themeMode == ThemeMode.LIGHT,
-                            onClick = { onThemeSelected(ThemeMode.LIGHT) }
+                            onClick = { actions.onThemeSelected(ThemeMode.LIGHT) }
                         )
                         ThemeOption(
                             title = "Escuro",
                             description = "Sempre usar o tema escuro",
                             selected = themeMode == ThemeMode.DARK,
-                            onClick = { onThemeSelected(ThemeMode.DARK) }
+                            onClick = { actions.onThemeSelected(ThemeMode.DARK) }
                         )
                         ThemeOption(
                             title = "Acompanhar sistema",
                             description = "Respeita a configuração do dispositivo",
                             selected = themeMode == ThemeMode.SYSTEM,
-                            onClick = { onThemeSelected(ThemeMode.SYSTEM) }
+                            onClick = { actions.onThemeSelected(ThemeMode.SYSTEM) }
                         )
                     }
                 }
@@ -158,13 +157,13 @@ fun SettingsContent(
                     }
                     Switch(
                         checked = uiState.networkEnabled,
-                        onCheckedChange = onNetworkToggle
+                        onCheckedChange = actions.onNetworkToggle
                     )
                 }
 
                 OutlinedTextField(
                     value = uiState.networkBaseUrl,
-                    onValueChange = onNetworkBaseUrlChange,
+                    onValueChange = actions.onNetworkBaseUrlChange,
                     label = { Text("Base URL do servidor (ex.: http://192.168.1.110:3000/)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -181,7 +180,7 @@ fun SettingsContent(
                 )
 
                 Button(
-                    onClick = onSaveNetworkConfig,
+                    onClick = actions.onSaveNetworkConfig,
                     enabled = !uiState.isSavingNetworkConfig,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -195,7 +194,7 @@ fun SettingsContent(
         Spacer(Modifier.height(8.dp))
 
         Button(
-            onClick = onLogoutClick,
+            onClick = actions.onLogoutClick,
             enabled = !uiState.isLoggingOut,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -203,6 +202,15 @@ fun SettingsContent(
         }
     }
 }
+
+data class SettingsActions(
+    val onBack: () -> Unit,
+    val onThemeSelected: (ThemeMode) -> Unit,
+    val onLogoutClick: () -> Unit,
+    val onNetworkToggle: (Boolean) -> Unit,
+    val onNetworkBaseUrlChange: (String) -> Unit,
+    val onSaveNetworkConfig: () -> Unit
+)
 
 @Composable
 private fun ThemeOption(

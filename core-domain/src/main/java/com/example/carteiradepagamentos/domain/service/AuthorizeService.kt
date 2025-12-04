@@ -1,5 +1,5 @@
 package com.example.carteiradepagamentos.domain.service
 
-interface AuthorizeService {
+fun interface AuthorizeService {
     suspend fun authorizeTransfer(amountInCents: Long): Result<Boolean>
 }
