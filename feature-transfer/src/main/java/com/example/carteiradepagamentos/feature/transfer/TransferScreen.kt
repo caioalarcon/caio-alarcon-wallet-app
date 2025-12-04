@@ -105,12 +105,15 @@ fun TransferScreen(
 
     uiState.successDialogData?.let { successData ->
         TransferOutcomeDialog(
-            title = "Transferência enviada",
-            message = null,
-            amountText = successData.amountText,
-            contactName = successData.contactName,
-            contactAccount = successData.contactAccount,
-            confirmLabel = "OK",
+            data = TransferOutcomeDialogData(
+                title = "Transferência enviada",
+                message = null,
+                amountText = successData.amountText,
+                contactName = successData.contactName,
+                contactAccount = successData.contactAccount,
+                confirmLabel = "OK",
+                dismissLabel = null
+            ),
             onConfirm = {
                 viewModel.clearSuccessDialog()
                 onBackToHome()
@@ -120,17 +123,19 @@ fun TransferScreen(
 
     uiState.errorDialogData?.let { errorData ->
         TransferOutcomeDialog(
-            title = "Erro na transferência",
-            message = errorData.message,
-            amountText = errorData.amountText,
-            contactName = errorData.contactName,
-            contactAccount = errorData.contactAccount,
-            confirmLabel = "Tentar novamente",
+            data = TransferOutcomeDialogData(
+                title = "Erro na transferência",
+                message = errorData.message,
+                amountText = errorData.amountText,
+                contactName = errorData.contactName,
+                contactAccount = errorData.contactAccount,
+                confirmLabel = "Tentar novamente",
+                dismissLabel = "Voltar"
+            ),
             onConfirm = {
                 viewModel.clearErrorDialog()
                 viewModel.reload()
             },
-            dismissLabel = "Voltar",
             onDismiss = {
                 viewModel.clearErrorDialog()
                 onBackToHome()
@@ -204,14 +209,8 @@ fun TransferContent(
 
 @Composable
 private fun TransferOutcomeDialog(
-    title: String,
-    message: String?,
-    amountText: String?,
-    contactName: String?,
-    contactAccount: String?,
-    confirmLabel: String,
+    data: TransferOutcomeDialogData,
     onConfirm: () -> Unit,
-    dismissLabel: String? = null,
     onDismiss: (() -> Unit)? = null,
 ) {
     val handleDismiss = onDismiss ?: onConfirm
@@ -222,29 +221,39 @@ private fun TransferOutcomeDialog(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(data.title, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(12.dp))
                 TransferDialogContent(
-                    message = message,
-                    amountText = amountText,
-                    contactName = contactName,
-                    contactAccount = contactAccount
+                    message = data.message,
+                    amountText = data.amountText,
+                    contactName = data.contactName,
+                    contactAccount = data.contactAccount
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(
                     horizontalArrangement = Arrangement.End,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    dismissLabel?.let {
+                    data.dismissLabel?.let {
                         TextButton(onClick = handleDismiss) { Text(it) }
                         Spacer(Modifier.width(8.dp))
                     }
-                    Button(onClick = onConfirm) { Text(confirmLabel) }
+                    Button(onClick = onConfirm) { Text(data.confirmLabel) }
                 }
             }
         }
     }
 }
+
+private data class TransferOutcomeDialogData(
+    val title: String,
+    val message: String?,
+    val amountText: String?,
+    val contactName: String?,
+    val contactAccount: String?,
+    val confirmLabel: String,
+    val dismissLabel: String?
+)
 
 @Composable
 private fun TransferDialogContent(

@@ -4,6 +4,6 @@ import java.text.NumberFormat
 import java.util.Locale
 
 fun Long.toBRCurrency(): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
+    val formatter = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR"))
     return formatter.format(this / 100.0).replace('\u00A0', ' ')
 }
