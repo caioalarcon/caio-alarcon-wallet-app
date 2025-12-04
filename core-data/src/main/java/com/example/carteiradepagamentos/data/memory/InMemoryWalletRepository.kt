@@ -69,7 +69,7 @@ class InMemoryWalletRepository @Inject constructor(
     override suspend fun getContacts(): List<Contact> {
         delay(300)
         val currentUserAccount = currentUserAccount()
-        return accounts
+        val others = accounts
             .filter { it.ownerUserId != currentUserAccount.ownerUserId }
             .map { account ->
                 Contact(
@@ -79,6 +79,15 @@ class InMemoryWalletRepository @Inject constructor(
                     accountNumber = account.accountNumber
                 )
             }
+
+        val selfContact = Contact(
+            id = currentUserAccount.id,
+            ownerUserId = currentUserAccount.ownerUserId,
+            name = currentUserAccount.ownerName,
+            accountNumber = currentUserAccount.accountNumber
+        )
+
+        return listOf(selfContact) + others
     }
 
     override suspend fun transfer(

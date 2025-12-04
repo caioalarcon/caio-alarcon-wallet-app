@@ -31,7 +31,7 @@ class NetworkWalletRepository @Inject constructor(
             ?: throw IllegalStateException("Sessão expirada")
 
         val response = walletApi().getContacts(session.user.id)
-        return response.map {
+        val contacts = response.map {
             Contact(
                 id = it.id,
                 ownerUserId = it.ownerUserId,
@@ -39,6 +39,13 @@ class NetworkWalletRepository @Inject constructor(
                 accountNumber = it.accountNumber
             )
         }
+        val selfContact = Contact(
+            id = "self-${session.user.id}",
+            ownerUserId = session.user.id,
+            name = session.user.name,
+            accountNumber = "0000-0"
+        )
+        return listOf(selfContact) + contacts
     }
 
     override suspend fun transfer(
