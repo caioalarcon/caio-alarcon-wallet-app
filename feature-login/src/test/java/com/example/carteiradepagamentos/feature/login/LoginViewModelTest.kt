@@ -6,6 +6,7 @@ import com.example.carteiradepagamentos.domain.model.User
 import com.example.carteiradepagamentos.domain.repository.AuthRepository
 import com.example.carteiradepagamentos.domain.repository.UserPreferencesRepository
 import com.example.carteiradepagamentos.domain.model.ThemeMode
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -14,6 +15,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
 
     @get:Rule
