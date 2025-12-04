@@ -100,7 +100,8 @@ class InMemoryWalletRepositoryTest {
 
         val contacts = repository.getContacts()
 
-        assertEquals(listOf("acc2", "acc3", "acc4"), contacts.map { it.id })
+        assertEquals(listOf("acc1", "acc2", "acc3", "acc4"), contacts.map { it.id })
+        assertEquals("1", contacts.first().ownerUserId) // self contact para bloquear payer=payee
     }
 
     @Test

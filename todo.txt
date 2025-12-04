@@ -1,0 +1,12 @@
+# Backlog (fácil → difícil)
+- Ajustes UX/UI rápidos: campo de senha com toggle de visibilidade (feito), estados de loading/erro consistentes em todas as telas.
+- Validação de rede/config: presets de base URL (dev/stage/prod), botão “testar conexão” na tela de Configurações.
+- Histórico de transações: lista de últimas operações com detalhe e filtro simples.
+- CRUD de contatos: adicionar/editar/remover contato; buscar usuário por email/CPF e salvar na agenda; favoritos/ordenação.
+- Recibos e compartilhamento: recibo da transferência, compartilhar via PDF/print.
+- Notificações avançadas: push para recebimento/erro, central in-app, ações rápidas.
+- Segurança de sessão: timeout + biometria/PIN para reentrar; lista de sessões/dispositivos ativos para encerrar.
+- Login social: Entrar com Google (e Apple opcional), com opção de vincular a conta existente.
+- Criação de conta e recuperação: cadastro completo, verificação de email/SMS, reset de senha.
+- Transferências futuras/recorrentes: agendar ou repetir automaticamente, com confirmação extra para valores altos.
+- Multi-conta e saldo: múltiplas carteiras, escolher origem da transferência, exportar extrato (CSV/PDF).

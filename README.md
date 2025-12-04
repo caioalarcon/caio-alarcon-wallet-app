@@ -40,6 +40,11 @@ Aplicativo Android em Jetpack Compose com arquitetura modular para autenticaçã
 - Validações aplicadas: contato selecionado, valor > 0, saldo suficiente, **payer ≠ payee** (usa `ownerUserId` do contato e o `user.id` da sessão atual). 【F:feature-transfer/src/main/java/com/example/carteiradepagamentos/feature/transfer/TransferViewModel.kt†L70-L123】
 - Após autorização, o `AndroidNotifier` dispara uma notificação local formatada; em API 33+, a permissão `POST_NOTIFICATIONS` é declarada e solicitada automaticamente ao abrir a tela de transferência. 【F:app/src/main/AndroidManifest.xml†L3-L7】【F:feature-transfer/src/main/java/com/example/carteiradepagamentos/feature/transfer/TransferScreen.kt†L28-L67】【F:core-data/src/main/java/com/example/carteiradepagamentos/data/notification/AndroidNotifier.kt†L15-L52】
 
-## TODOs de prints
-- TODO: Adicionar print/GIF da Home.
-- TODO: Adicionar print/GIF da tela de Transferência.
+## Telas
+- Login: ![Login](docs/screen-login.png)
+- Home / contatos: ![Home](docs/screen-home.png)
+- Transferência (seleção + valor): ![Transferência](docs/screen-transfer-form.png)
+- Transferência enviada: ![Sucesso](docs/screen-transfer-success.png)
+- Erro por saldo insuficiente: ![Erro saldo](docs/screen-transfer-insufficient.png)
+- Erro por política (R$ 403,00): ![Erro política](docs/screen-transfer-policy403.png)
+- Erro ao transferir para si mesmo: ![Erro auto-contato](docs/screen-transfer-self.png)

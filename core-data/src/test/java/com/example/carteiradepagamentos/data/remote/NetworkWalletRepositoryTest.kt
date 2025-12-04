@@ -119,11 +119,18 @@ class NetworkWalletRepositoryTest {
 
         val contacts: List<Contact> = repository.getContacts()
 
-        assertEquals(2, contacts.size)
-        assertEquals("acc2", contacts[0].id)
-        assertEquals("2", contacts[0].ownerUserId)
-        assertEquals("Alice", contacts[0].name)
-        assertEquals("0001-2", contacts[0].accountNumber)
+        assertEquals(3, contacts.size)
+
+        val self = contacts[0]
+        assertEquals("self-1", self.id)
+        assertEquals("1", self.ownerUserId)
+        assertEquals("User", self.name)
+
+        val contact = contacts[1]
+        assertEquals("acc2", contact.id)
+        assertEquals("2", contact.ownerUserId)
+        assertEquals("Alice", contact.name)
+        assertEquals("0001-2", contact.accountNumber)
 
         val request = server.takeRequest()
         val url = request.requestUrl!!
